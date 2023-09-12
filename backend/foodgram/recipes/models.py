@@ -58,7 +58,7 @@ class Recipe(models.Model):
         through='RecipeIngredient',
         verbose_name='Ингредиенты',
     )
-    tag = tags = models.ManyToManyField(Tags)
+    tag = models.ManyToManyField(Tags)
     cooking_time = models.IntegerField(
         null=True,
         default=0,

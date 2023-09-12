@@ -78,8 +78,12 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mydatabase',          # Имя вашей базы данных
+        'USER': 'mydatabaseuser',      # Имя пользователя базы данных
+        'PASSWORD': 'mypassword',      # Пароль пользователя базы данных
+        'HOST': 'localhost',           # Хост базы данных (обычно 'localhost' для локальной установки)
+        'PORT': '5432',                # Порт базы данных (по умолчанию 5432 для PostgreSQL)
     }
 }
 
