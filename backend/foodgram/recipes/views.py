@@ -1,117 +1,85 @@
+from rest_framework import viewsets, mixins
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.filters import SearchFilter
+from rest_framework import permissions
+from rest_framework.pagination import LimitOffsetPagination
+from rest_framework import status
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 from .models import Recipe, User, Follow
 from .forms import RecipeForm
+from .serializers import FollowSerializer, RecipeSerializer
+from .permissions import IsAuthorOrReadOnly, IsAuthor
 
 POST_FILTER = 6
 
 
-def index(request):
-    """Главная страница."""
-    recipe = Recipe.objects.all()
-    paginator = Paginator(recipe, POST_FILTER)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+class RecipesViewSet(viewsets.ModelViewSet):
+    """ViewSet для неавторизованного пользователя."""
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    permission_classes = (permissions.AllowAny,)
+    pagination_class = LimitOffsetPagination
+    page_size = POST_FILTER
 
-    context = {
-        'recipe': recipe,
-        'page_obj': page_obj,
-    }
-    return render(request, 'frontend/public/index.html', context)
+    def list(self, request, *args, **kwargs):  # просмотр списка
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
+    def retrieve(self, request, *args, **kwargs):  # просмотр одного рецепта
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
-def recipe_edit(request, recipe_id):
-    """Редактирование рецепта(автор)."""
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    recipe_count = Recipe.objects.filter(author=recipe.author).count()
-    postname_recipe = postname_recipe.text[:30] # ###
-    author = recipe.author
-    form = RecipeForm(request.POST or None)
-    context = {
-        'recipe': recipe,
-        'recipe_count': recipe_count,
-        'postname_recipe': postname_recipe,
-        'form': form,
-        'author': author,
-    }
-    return render(request, 'posts/post_detail.html', context)
-
-
-@login_required
-def post_create(request):
-    """Создание рецепта."""
-    form = RecipeForm(
-        request.POST or None,
-        files=request.FILES or None,
-    )
-    if request.method == 'POST':
-        if form.is_valid():
-            recipe = form.save(commit=False)
-            recipe.author = request.user
-            form.save()
-            return redirect('posts:profile', recipe.author)  # страницы
-    return render(request, 'posts/create_post.html', {'form': form})  # страницы
+    def user_profile(self, request, *args, **kwargs):  # просмотр страницы 
+        try:
+            user = User.objects.get(username=username) # автора с рецептами
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Пользователь не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        user_data = {
+            "username": user.username,
+        }
+        return Response(user_data)
 
 
-@login_required
-def recipe_page(request, recipe_id):
-    """Страница рецепта."""
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    form = RecipeForm(
-        request.POST or None,
-        files=request.FILES or None,
-        instance=recipe
-    )
-    context = {
-        'is_edit': True,
-        'form': form,
-    }
-    if request.user != recipe.author:
-        return redirect('recipes:recipe_detail', recipe_id)
-    if request.method == 'POST':
-        form = RecipeForm(
-            request.POST or None,
-            files=request.FILES or None,
-            instance=recipe
-        )
-        if form.is_valid():
-            form.save()
-            return redirect('recipes:recipe_detail', recipe_id)
-        return render(request, 'frontend/public/index.html', {'form': form})  # страницы
-    return render(request, 'frontend/public/index.html', context)  # страницы
+class FollowViewSet(mixins.CreateModelMixin, 
+                    mixins.RetrieveModelMixin,
+                    mixins.ListModelMixin,
+                    mixins.DestroyModelMixin,  # делаем отписку
+                    viewsets.GenericViewSet):
+    """ViewSet для подписки авторизованного пользователя."""
+    serializer_class = FollowSerializer
+    pagination_class = LimitOffsetPagination
+    page_size = POST_FILTER
+    filter_backends = (SearchFilter,)
+    search_fields = ('following__username',)
+    permission_classes = (IsAuthenticated,)
+
+    def perform_create(self, serializer):  # создание подписки
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):  # возвращаем список подписок
+        return self.request.user.follower.all()
 
 
-@login_required
-def follow_index(request):
-    """Функция для того, чтобы подписаться"""
-    recipes = Recipe.objects.filter(author__following__user=request.user)
-    paginator = Paginator(recipes, POST_FILTER)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    context = {
-        'page_obj': page_obj
-    }
-    return render(request, 'posts/follow.html', context)
-
-
-@login_required
-def follow_page(request, username):
-    """Страница подписок."""
-    author = get_object_or_404(User, username=username)
-    if request.user == author:
-        return redirect('posts:index')
-    Follow.objects.get_or_create(
-        user=request.user,
-        author=author,
-    )
-    return redirect('posts:profile', username=username)
-
-
-@login_required
-def profile_unfollow(request, username):
-    """Функция для того, чтобы отписаться"""
-    author = get_object_or_404(User, username=username)
-    Follow.objects.filter(author=author, user=request.user).delete()
-    return redirect('posts:profile', username=username)
+class AuthUservViewSet(mixins.CreateModelMixin,  # создание/удаление/редактирование
+                       mixins.DestroyModelMixin,  # для автора
+                       mixins.UpdateModelMixin,
+                       ):
+    """ViewSet для авторизованных пользователей."""
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    permission_classes = (IsAuthor,)
+    pagination_class = LimitOffsetPagination
+    page_size = POST_FILTER
+    search_fields = ('tag',)

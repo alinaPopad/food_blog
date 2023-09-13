@@ -11,11 +11,6 @@ class Ingredient(models.Model):
         max_length=50,
         verbose_name='Название ингредиента',
     )
-    quantity = models.DecimalField(
-        max_digits=10,
-        decimal_places=1,
-        verbose_name='Количество ингредиента'
-    )
     unit = models.CharField(
         max_length=50,
         verbose_name='Единицы измерения',
@@ -103,3 +98,23 @@ class Follow(models.Model):
 
     def __Str__(self):
         return f'Пользователь {self.user} подписан на автора {self.author}'
+
+
+class RecipeIngredient(models.Model):
+    """Модель для связи many to many."""
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        blank=False,
+        null=False,
+        related_name="ingredients"
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=1,
+        verbose_name='Количество ингредиента'
+    )
