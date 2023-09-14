@@ -62,7 +62,7 @@ class FollowViewSet(mixins.CreateModelMixin,
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
     filter_backends = (SearchFilter,)
-    search_fields = ('following__username',)
+    # search_fields = ('following__username',)
     permission_classes = (IsAuthenticated,)
 
     def perform_create(self, serializer):  # создание подписки
@@ -82,4 +82,4 @@ class AuthUservViewSet(mixins.CreateModelMixin,  # создание/удален
     permission_classes = (IsAuthor,)
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
-    search_fields = ('tag',)
+    search_fields = ('tag',) # фильтрация по тегам
