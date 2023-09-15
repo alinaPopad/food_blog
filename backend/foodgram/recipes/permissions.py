@@ -4,16 +4,19 @@ from rest_framework.permissions import BasePermission
 from .models import Follow
 
 
-class IsAuthorOrReadOnly(BasePermission):
+class IsAuthorOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_authenticated
+        # Разрешить все методы HTTP для неавторизованных пользователей,
+        # для авторизованных - только чтение
+        if request.user.is_authenticated:
+            return request.method in permissions.SAFE_METHODS
+        return True
 
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.author == request.user
+        # Разрешить только авторам изменять и удалять объекты
+        if request.user.is_authenticated:
+            return obj.author == request.user
+        return False
 
 
 class IsAuthor(permissions.BasePermission):

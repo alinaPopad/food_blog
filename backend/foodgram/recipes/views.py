@@ -12,44 +12,65 @@ from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
-from .models import Recipe, User, Follow
-from .forms import RecipeForm
-from .serializers import FollowSerializer, RecipeSerializer
+from .models import Recipe, User, Follow, Tags
+from .serializers import FollowSerializer, RecipeSerializer, TagSerializer
 from .permissions import IsAuthorOrReadOnly, IsAuthor
+from .filters import RecipeFilter
 
 POST_FILTER = 6
 
 
-class RecipesViewSet(viewsets.ModelViewSet):
-    """ViewSet для неавторизованного пользователя."""
+class RecipesViewSet(viewsets.ModelViewSet):  # ++++
+    """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
+    search_fields = ('tag',)
 
-    def list(self, request, *args, **kwargs):  # просмотр списка
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, *args, **kwargs):  # просмотр одного рецепта
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-
-    def user_profile(self, request, *args, **kwargs):  # просмотр страницы 
-        try:
-            user = User.objects.get(username=username) # автора с рецептами
-        except User.DoesNotExist:
-            return Response(
-                {"error": "Пользователь не найден"},
-                status=status.HTTP_404_NOT_FOUND
+    def get_queryset(self):
+        queryset = Recipe.objects.all()
+        if self.request.user.is_authenticated:
+            # Если пользователь авторизован, добавить фильтрацию для него
+            filterset = RecipeFilter(
+                self.request.query_params,
+                queryset=queryset,
+                request=self.request
             )
-        user_data = {
-            "username": user.username,
-        }
-        return Response(user_data)
+            queryset = filterset.qs
+        return queryset
+
+
+class TagsViewSet(viewsets.ReadOnlyModelViewSet):  # ++++
+    """ViewSet для работы с тегами."""
+    queryset = Tags.objects.all()
+    serializer_class = TagSerializer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class FollowViewSet(mixins.CreateModelMixin, 
@@ -72,14 +93,3 @@ class FollowViewSet(mixins.CreateModelMixin,
         return self.request.user.follower.all()
 
 
-class AuthUservViewSet(mixins.CreateModelMixin,  # создание/удаление/редактирование
-                       mixins.DestroyModelMixin,  # для автора
-                       mixins.UpdateModelMixin,
-                       ):
-    """ViewSet для авторизованных пользователей."""
-    queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
-    permission_classes = (IsAuthor,)
-    pagination_class = LimitOffsetPagination
-    page_size = POST_FILTER
-    search_fields = ('tag',) # фильтрация по тегам
