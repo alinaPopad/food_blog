@@ -10,7 +10,7 @@ class RecipeFilter(filters.FilterSet):
     )
     is_in_shopping_cart = filters.BooleanFilter(
         field_name="shopping_cart__user",
-        method="filter_by_shopping_cart"
+        method="filter_by_shopping_list"
     )
     author = filters.NumberFilter(field_name="author__id")
     tags = filters.CharFilter(field_name="tags__slug", method="filter_by_tags")

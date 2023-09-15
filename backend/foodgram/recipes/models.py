@@ -66,6 +66,109 @@ class Recipe(models.Model):
         ordering = ['-pub_date']
 
 
+class RecipeIngredient(models.Model):
+    """Модель для связи many to many."""
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        blank=False,
+        null=False,
+        related_name="ingredients"
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=1,
+        verbose_name='Количество ингредиента'
+    )
+
+
+class ShoppingList(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_list_user',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_list_recipe',
+        verbose_name='Рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Список покупок'
+        constraints = [
+            models.UniqueConstraint(  # проверяю на уникальность пару пользователь-рецепт
+                fields=['shopping_list_user', 'shopping_list_recipe'],
+                name='unique_shopping_list'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'
+
+
+class Favorites(models.Model):
+    """Модель избранного."""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorites_user',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorites_recipe',
+        verbose_name='Рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+        constraints = [
+            models.UniqueConstraint(  # проверяю на уникальность пару пользователь-рецепт
+                fields=['favorites_user', 'favorites_recipe'],
+                name='unique_favorite'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Follow(models.Model):
     """Модель подписок"""
     user = models.ForeignKey(
@@ -98,23 +201,3 @@ class Follow(models.Model):
 
     def __Str__(self):
         return f'Пользователь {self.user} подписан на автора {self.author}'
-
-
-class RecipeIngredient(models.Model):
-    """Модель для связи many to many."""
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE
-    )
-    ingredient = models.ForeignKey(
-        Ingredient,
-        on_delete=models.CASCADE,
-        blank=False,
-        null=False,
-        related_name="ingredients"
-    )
-    quantity = models.DecimalField(
-        max_digits=10,
-        decimal_places=1,
-        verbose_name='Количество ингредиента'
-    )
