@@ -7,9 +7,9 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import re_path
-from recipes.views import RecipesViewSet, FollowViewSet, TagsViewSet, IngredientsViewSet
+from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet, ShoppingListViewSet, FavoritesViewSet
 from rest_framework.routers import DefaultRouter
-
+# FollowViewSet,
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -28,7 +28,9 @@ router = DefaultRouter()
 router.register(r'recipes', RecipesViewSet)  # рецепты
 router.register(r'tags', TagsViewSet)  # теги
 router.register(r'ingredients', IngredientsViewSet)  # ингредиенты
-router.register(r'follows', FollowViewSet)
+router.register(r'shoppinglist', ShoppingListViewSet)  # список покупок
+router.register(r'favorites', FavoritesViewSet)  # избранное
+# router.register(r'follows', FollowViewSet)
 
 
 urlpatterns = [

@@ -137,7 +137,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 # settings.py
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "foodgram", "templates", "drf-yasg"),
+    os.path.join(BASE_DIR, "static"),
+    'D:/Dev/foodgram-project-react/backend/foodgram/foodgram/templates',  # Обновите этот путь
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -13,11 +13,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from rest_framework.decorators import action
 
-from .models import Recipe, User, Follow, Tags, Ingredient, ShoppingList, Favorites
+from .models import Recipe, User, Follow, Tags, Ingredient, ShoppingList, Favorites, RecipeIngredient
 from .serializers import FavoritesSerializer, FollowSerializer, RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingListSerializer
 from .permissions import IsAuthorOrReadOnly, IsAuthor
 from .filters import RecipeFilter
 from reportlab.pdfgen import canvas
+from django.http import HttpResponse
 
 POST_FILTER = 6
 
@@ -57,7 +58,7 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['title']  # поиск по частичноми вхождению
 
-"""
+
 class ShoppingListViewSet(viewsets.ModelViewSet):
     queryset = ShoppingList.objects.all()
     serializer_class = ShoppingListSerializer
@@ -65,43 +66,46 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def download_shopping_cart(self, request):
-        recipe = Recipe.objects.get(pk=pk)
-        pdf = canvas.Canvas(ShoppingList)
-        while line in recipe:
+        user = request.user
+        recipes_in_shopping_cart = ShoppingList.objects.filter(user=user).values_list('recipe', flat=True)
 
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="shopping_cart.pdf"'
 
-        pdf.setTitle(Recipe.name_recipe)
-     
-        # ...
-        # return Response(file_data, content_type='application/pdf')
-        return Response(status=status.HTTP_501_NOT_IMPLEMENTED)  
+        pdf = canvas.Canvas(response, pagesize=letter)
+        pdf.setTitle('Shopping Cart')
+
+        for recipe_id in recipes_in_shopping_cart:
+            recipe = Recipe.objects.get(pk=recipe_id)
+            pdf.drawString(100, 700, recipe.name_recipe)  # Здесь можно добавить имя рецепта
+
+            ingredients = RecipeIngredient.objects.filter(recipe=recipe)
+            for ingredient in ingredients:
+                df.drawString(150, 680, f"{ingredient.ingredient.title}: {ingredient.quantity} {ingredient.ingredient.unit}")
+                pdf.showPage()  # Переход на новую страницу для каждого рецепта
+
+        pdf.save()
+        return response
 
     @action(detail=True, methods=['post'])
-    def add_to_shopping_cart(self, request, pk):
-        recipe = Recipe.objects.get(pk=pk)
-        shopping_list_item, created = ShoppingList.objects.get_or_create(user=request.user, recipe=recipe)
-        if not created:
-            return Response({"detail": "Рецепт уже в списке покупок"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_201_CREATED)
-
-        
-        def add_to_favorites(self, request, pk=None):
+    def add_to_shopping_cart(self, request, pk=None):
         recipe = self.get_object()
         user = request.user
-        Favorites.objects.create(user=user, recipe=recipe)
+        ShoppingList.objects.create(user=user, recipe=recipe)
         return Response()
- 
+
 
     @action(detail=True, methods=['delete'])
     def remove_from_shopping_cart(self, request, pk):
-        # Здесь вам нужно реализовать удаление рецепта из списка покупок для текущего пользователя
-        # Пример:
-        # recipe = Recipe.objects.get(pk=pk)
-        # ShoppingList.objects.filter(user=request.user, recipe=recipe).delete()
-        # return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_501_NOT_IMPLEMENTED)  
+        recipe = self.get_object()
+        user = request.user
 
-"""
+        try:
+            favorite = ShoppingList.objects.get(recipe=recipe, user=user)
+            favorite.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ShoppingList.DoesNotExist:
+            return Response({"detail": "Рецепт не найден в списке"}, status=status.HTTP_400_BAD_REQUEST)  
 
 
 class FavoritesViewSet(viewsets.ModelViewSet):  # только авторизованный пользователь 
@@ -130,44 +134,3 @@ class FavoritesViewSet(viewsets.ModelViewSet):  # только авторизо�
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Favorites.DoesNotExist:
             return Response({"detail": "Рецепт не найден в избранном"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class FollowViewSet(mixins.CreateModelMixin, 
-                    mixins.RetrieveModelMixin,
-                    mixins.ListModelMixin,
-                    mixins.DestroyModelMixin,  # делаем отписку
-                    viewsets.GenericViewSet):
-    """ViewSet для подписки авторизованного пользователя."""
-    serializer_class = FollowSerializer
-    pagination_class = LimitOffsetPagination
-    page_size = POST_FILTER
-    filter_backends = (SearchFilter,)
-    # search_fields = ('following__username',)
-    permission_classes = (IsAuthenticated,)
-
-    def perform_create(self, serializer):  # создание подписки
-        serializer.save(user=self.request.user)
-
-    def get_queryset(self):  # возвращаем список подписок
-        return self.request.user.follower.all()
-
-

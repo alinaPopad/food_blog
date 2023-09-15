@@ -87,6 +87,7 @@ class RecipeIngredient(models.Model):
 
 
 class ShoppingList(models.Model):
+    """Модель для списка покупок."""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -105,7 +106,7 @@ class ShoppingList(models.Model):
         verbose_name_plural = 'Список покупок'
         constraints = [
             models.UniqueConstraint(  # проверяю на уникальность пару пользователь-рецепт
-                fields=['shopping_list_user', 'shopping_list_recipe'],
+                fields=['user', 'recipe'],
                 name='unique_shopping_list'
             )
         ]
@@ -134,7 +135,7 @@ class Favorites(models.Model):
         verbose_name_plural = 'Избранное'
         constraints = [
             models.UniqueConstraint(  # проверяю на уникальность пару пользователь-рецепт
-                fields=['favorites_user', 'favorites_recipe'],
+                fields=['user', 'recipe'],
                 name='unique_favorite'
             )
         ]

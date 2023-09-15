@@ -8,4 +8,4 @@ class CustomUserCreateSerializer(UserCreateSerializer):
     """Сериализатор для регистрации по токену"""
     class Meta(UserCreateSerializer.Meta):
         model = User
-        fields = ('id', 'login','email', 'password', 'first_name', 'last_name')
+        fields = ('id', 'login', 'email', 'password', 'first_name', 'last_name')
