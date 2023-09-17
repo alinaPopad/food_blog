@@ -9,7 +9,7 @@ from django.conf.urls.static import static
 from django.urls import re_path
 from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet, ShoppingListViewSet, FavoritesViewSet
 from rest_framework.routers import DefaultRouter
-# FollowViewSet,
+from users.views import FollowViewSet, CustomUserViewSet
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -30,8 +30,7 @@ router.register(r'tags', TagsViewSet)  # теги
 router.register(r'ingredients', IngredientsViewSet)  # ингредиенты
 router.register(r'shoppinglist', ShoppingListViewSet)  # список покупок
 router.register(r'favorites', FavoritesViewSet)  # избранное
-# router.register(r'follows', FollowViewSet)
-
+router.register(r'follows', FollowViewSet)  # подписки
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -45,4 +44,12 @@ urlpatterns = [
     # регистрация и получение токена
     re_path('auth/', include('djoser.urls')),
     re_path('auth/', include('djoser.urls.authtoken')),
+    # api users
+    path('api/users/', CustomUserViewSet.as_view({'get': 'users_list'})),
+    path('api/users/me/', CustomUserViewSet.as_view({'get': 'current_user'})),
+    path('api/users/<int:pk>/', CustomUserViewSet.as_view({'get': 'profile'})),
+    path('api/users/register/', CustomUserViewSet.as_view({'post': 'register'})),
+    path('api/users/set_password/', CustomUserViewSet.as_view({'post': 'change_password'})),
+    path('api/auth/token/login/', CustomUserViewSet.as_view({'post': 'obtain_auth_token'})),
+    path('api/auth/token/logout/', CustomUserViewSet.as_view({'post': 'delete_token'})),
 ]
