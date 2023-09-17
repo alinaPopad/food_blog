@@ -1,4 +1,4 @@
-from rest_framework import viewsets, mixins, filters
+from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.filters import SearchFilter
@@ -7,42 +7,74 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.shortcuts import render, get_object_or_404, redirect
-from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from rest_framework.decorators import action
 
-from .models import Recipe, User, Follow, Tags, Ingredient, ShoppingList, Favorites, RecipeIngredient
-from .serializers import FavoritesSerializer, FollowSerializer, RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingListSerializer
+from .models import Recipe, User, Tags, Ingredient, ShoppingList, Favorites, RecipeIngredient
+from .serializers import FavoritesSerializer, RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingListSerializer
 from .permissions import IsAuthorOrReadOnly, IsAuthor
 from .filters import RecipeFilter
 from reportlab.pdfgen import canvas
 from django.http import HttpResponse
+import django_filters
+
 
 POST_FILTER = 6
 
 
-class RecipesViewSet(viewsets.ModelViewSet):  # ++++
+class RecipesViewSet(viewsets.ModelViewSet):
     """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
-    search_fields = ('tag',)
+    filter_backends = (
+        django_filters.DjangoFilterBackend,
+        filters.SearchFilter,
+    )
+    filter_class = RecipeFilter
+    search_fields = ('tag__slug', 'title',)
 
-    def get_queryset(self):
-        queryset = Recipe.objects.all()
-        if self.request.user.is_authenticated:
-            # Если пользователь авторизован, добавить фильтрацию для него
-            filterset = RecipeFilter(
-                self.request.query_params,
-                queryset=queryset,
-                request=self.request
-            )
-            queryset = filterset.qs
-        return queryset
+    def list(self, request, *args, **kwargs):  # список рецептов
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):  # создание рецепта
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            recipe = serializer.save(author=request.user)
+            return Response(self.get_serializer(recipe).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):  # получение рецепта по id
+        recipe = self.get_object()
+        serializer = self.get_serializer(recipe)
+        return Response(serializer.data)
+
+    def put(self, request, pk=None):  # изменение рецепта
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
+        recipe = self.get_object_or_404(Recipe, id=pk)
+        if request.user != recipe.author:
+            return Response({'detail': 'Недостаточно прав.'})
+        serializer = RecipeSerializer(recipe, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):  # удаление рецепта
+        recipe = self.get_object_or_404(Recipe, id=pk)
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
+        if request.user != recipe.author:
+            return Response({'detail': 'Недостаточно прав.'})
+        recipe.delete()
+        return Response()
 
 
 class TagsViewSet(viewsets.ReadOnlyModelViewSet):  # ++++
@@ -50,13 +82,34 @@ class TagsViewSet(viewsets.ReadOnlyModelViewSet):  # ++++
     queryset = Tags.objects.all()
     serializer_class = TagSerializer
 
+    def list(self, request):  # список тегов
+        tags = self.get_queryset()
+        serializer = self.get_serializer(tags, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['GET'])
+    def tag_detail(self, request, pk=None):  # поиск по тегу
+        tag = get_object_or_404(Tags, id=pk)
+        serializer = self.get_serializer(tag)
+        return Response(serializer.data)
+
 
 class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet для работы с ингредиентыми."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['title']  # поиск по частичноми вхождению
+    search_fields = ['title']
+
+    def list(self, request, *args, **kwargs):  # получение списка ингредиентов
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):  # полчение игредиента по id
+        ingredient = self.get_object()
+        serializer = self.get_object(ingredient)
+        return Response(serializer.data)
 
 
 class ShoppingListViewSet(viewsets.ModelViewSet):
@@ -65,7 +118,7 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
 
     @action(detail=False, methods=['get'])
-    def download_shopping_cart(self, request):
+    def download_shopping_cart(self, request):  # Скачать файл со списком покупок
         user = request.user
         recipes_in_shopping_cart = ShoppingList.objects.filter(user=user).values_list('recipe', flat=True)
 
@@ -77,35 +130,40 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
 
         for recipe_id in recipes_in_shopping_cart:
             recipe = Recipe.objects.get(pk=recipe_id)
-            pdf.drawString(100, 700, recipe.name_recipe)  # Здесь можно добавить имя рецепта
+            pdf.drawString(100, 700, recipe.name_recipe)
 
             ingredients = RecipeIngredient.objects.filter(recipe=recipe)
             for ingredient in ingredients:
-                df.drawString(150, 680, f"{ingredient.ingredient.title}: {ingredient.quantity} {ingredient.ingredient.unit}")
-                pdf.showPage()  # Переход на новую страницу для каждого рецепта
+                pdf.drawString(150, 680, f"{ingredient.ingredient.title}: {ingredient.quantity} {ingredient.ingredient.unit}")
+            pdf.showPage()
 
         pdf.save()
         return response
 
     @action(detail=True, methods=['post'])
-    def add_to_shopping_cart(self, request, pk=None):
+    def add_to_shopping_list(self, request, pk=None):  # добалвение рецепта в список покупок
         recipe = self.get_object()
         user = request.user
-        ShoppingList.objects.create(user=user, recipe=recipe)
-        return Response()
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
+        if ShoppingList.objects.filter(user=user, recipe=recipe).exists():
+            return Response({'detail': 'Рецепт уже есть в списке покупок.'})
+        serializer = ShoppingList.objects.create(user=user, recipe=recipe)
+        return Response(serializer.data)
 
 
-    @action(detail=True, methods=['delete'])
-    def remove_from_shopping_cart(self, request, pk):
+    @action(detail=True, methods=['delete'])  # удаление рецепта из списка покупок
+    def remove_from_shopping_list(self, request, pk=None):
         recipe = self.get_object()
         user = request.user
-
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
         try:
             favorite = ShoppingList.objects.get(recipe=recipe, user=user)
             favorite.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response()
         except ShoppingList.DoesNotExist:
-            return Response({"detail": "Рецепт не найден в списке"}, status=status.HTTP_400_BAD_REQUEST)  
+            return Response({"detail": "Рецепт не найден в списке"})
 
 
 class FavoritesViewSet(viewsets.ModelViewSet):  # только авторизованный пользователь 
@@ -114,23 +172,26 @@ class FavoritesViewSet(viewsets.ModelViewSet):  # только авторизо�
     serializer_class = FavoritesSerializer
     permission_classes = (IsAuthenticated,)
 
-    # Добавление нового рецепта в раздел
     @action(detail=True, methods=['post'])
-    def add_to_favorites(self, request, pk=None):
+    def add_to_favorites(self, request, pk=None):  # Добавление нового рецепта в раздел
         recipe = self.get_object()
         user = request.user
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
+        if Favorites.objects.filter(user=user, recipe=recipe).exists():
+            return Response({'detail': 'Рецепт уже есть в списке избранного.'})
         Favorites.objects.create(user=user, recipe=recipe)
         return Response()
 
-    # Удаление рецепта из раздела
     @action(detail=True, methods=['delete'])
-    def remove_from_favorites(self, request, pk=None):
+    def remove_from_favorites(self, request, pk=None):  # Удаление рецепта из раздела
         recipe = self.get_object()
         user = request.user
-
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
         try:
             favorite = Favorites.objects.get(recipe=recipe, user=user)
             favorite.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response()
         except Favorites.DoesNotExist:
-            return Response({"detail": "Рецепт не найден в избранном"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Рецепт не найден в избранном"})

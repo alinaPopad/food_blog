@@ -1,11 +1,11 @@
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.decorators import login_required
+
 from django.contrib.auth.models import User
 from rest_framework.decorators import action
 
@@ -24,7 +24,7 @@ class CustomUserViewSet(DjoserUserViewSet):
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
 
-    def users_list(self, request, *args, **kwargs):  # список пользователей
+    def list(self, request, *args, **kwargs):  # список пользователей
         queryset = self.filter_queryset(self.get_queryset())
         total_count = queryset.count()
         page = self.paginate_queryset(queryset)
@@ -34,7 +34,7 @@ class CustomUserViewSet(DjoserUserViewSet):
                 'count': total_count,
                 'next': self.get_next_link(),
                 'previous': self.get_previous_link(),
-                'result': serializer.data
+                'results': serializer.data
             }
             return self.get_paginated_response(data_list)
         serializer = self.get_serializer(queryset, many=True)
@@ -112,11 +112,7 @@ class CustomUserViewSet(DjoserUserViewSet):
             return Response({'detail': 'Токен не существует.'})
 
 
-class FollowViewSet(mixins.CreateModelMixin,
-                    mixins.RetrieveModelMixin,
-                    mixins.ListModelMixin,
-                    mixins.DestroyModelMixin,  # делаем отписку
-                    viewsets.GenericViewSet):
+class FollowViewSet(viewsets.ModelViewSet):
     """ViewSet для подписки авторизованного пользователя."""
     serializer_class = FollowSerializer
     pagination_class = LimitOffsetPagination
@@ -125,8 +121,29 @@ class FollowViewSet(mixins.CreateModelMixin,
     # search_fields = ('following__username',)
     permission_classes = (IsAuthenticated,)
 
-    def perform_create(self, serializer):  # создание подписки
-        serializer.save(user=self.request.user)
-
-    def get_queryset(self):  # возвращаем список подписок
+    def list(self, request):  # возвращаем список подписок
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
         return self.request.user.follower.all()
+
+    @action(detail=False, methods=['post'])
+    def create_subscription(self, request, pk=None):  # создание подписки
+        user_to_sub_to = get_object_or_404(User, pk=pk)
+        user = request.user
+        serializer = self.get_serializer(data={'user': user.id, 'following': user_to_sub_to.id})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete_subscription(self, request, pk=None):  # Отписка
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Пользователь не авторизован.'})
+        user_to_unsub = get_object_or_404(User, pk=pk)
+        user = request.user
+
+        try:
+            subscription = Follow.objects.get(user=user, author=user_to_unsub)
+            subscription.delete()
+            return Response()
+        except Follow.DoesNotExist:
+            return Response({'detail': 'Подписка не найденна.'})

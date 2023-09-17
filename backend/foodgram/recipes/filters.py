@@ -17,7 +17,12 @@ class RecipeFilter(filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = []
+        fields = {
+            'author': ['exact'],
+            'tags__slug': ['exact', 'in'],
+            'is_favorited': ['exact'],
+            'is_in_shopping_cart': ['exact'],
+        }
 
     def filter_by_favorites(self, queryset, name, value):
         return queryset.filter(
@@ -34,3 +39,5 @@ class RecipeFilter(filters.FilterSet):
     def filter_by_tags(self, queryset, name, value):
         tags = value.split(",")
         return queryset.filter(tags__slug__in=tags).distinct()
+
+
