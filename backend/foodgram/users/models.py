@@ -1,22 +1,38 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 from django.db.models import Q, F
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
-User = get_user_model()
+# User = get_user_model()
+
+
+class CustomUser(AbstractUser):
+    username = models.CharField(blank=True, max_length=150, )  # unique=True
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+    is_subscribed = models.BooleanField(default=False)
+    AbstractUser._meta.get_field('groups').remote_field.related_name = 'custom_user_set'
+    AbstractUser._meta.get_field('user_permissions').remote_field.related_name = 'custom_user_set'
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
+
+    def __str__(self):
+        return self.username
 
 
 class Follow(models.Model):
     """Модель подписок"""
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='follower',
         verbose_name='подписчик',
         help_text='тот, кто подписался'
     )
     author = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='following',
         verbose_name='автор',

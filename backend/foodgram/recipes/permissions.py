@@ -1,7 +1,7 @@
 from rest_framework import permissions
 from rest_framework.permissions import BasePermission
 
-from .models import Follow
+from users.models import Follow
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):

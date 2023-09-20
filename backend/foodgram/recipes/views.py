@@ -15,7 +15,7 @@ from .permissions import IsAuthorOrReadOnly, IsAuthor
 from .filters import RecipeFilter
 from reportlab.pdfgen import canvas
 from django.http import HttpResponse
-import django_filters
+
 
 
 POST_FILTER = 6
@@ -29,7 +29,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
     filter_backends = (
-        django_filters.DjangoFilterBackend,
+        RecipeFilter,
         filters.SearchFilter,
     )
     filter_class = RecipeFilter
@@ -108,7 +108,7 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):  # полчение игредиента по id
         ingredient = self.get_object()
-        serializer = self.get_object(ingredient)
+        serializer = self.get_serializer(ingredient)
         return Response(serializer.data)
 
 

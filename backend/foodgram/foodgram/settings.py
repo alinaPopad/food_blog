@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -130,6 +131,7 @@ USE_L10N = True
 
 USE_TZ = True
 
+AUTH_USER_MODEL = 'users.CustomUser'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
@@ -138,9 +140,8 @@ STATIC_URL = '/static/'
 # settings.py
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
-    'D:/Dev/foodgram-project-react/backend/foodgram/foodgram/templates',  # Обновите этот путь
+    'D:/Dev/foodgram-project-react/backend/foodgram/foodgram/templates',
 ]
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
@@ -157,6 +158,6 @@ DJOSER = {
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SERIALIZERS': {
-        'user_create': 'your_app.serializers.CustomUserCreateSerializer',
+        'user_create': 'users.serializers.CustomUserCreateSerializer',
     },
 }

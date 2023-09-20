@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.relations import SlugRelatedField
-from .models import Recipe, Follow, Tags, Ingredient, ShoppingList, Favorites
+from .models import Recipe, Tags, Ingredient, ShoppingList, Favorites
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -10,7 +10,7 @@ User = get_user_model()
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
     author = SlugRelatedField(slug_field='username', read_only=True)
-    image = serializers.ImageField(required=True, write_only=True)
+    # image = serializers.ImageField(required=True, write_only=True)
 
     class Meta:
         fields = '__all__'

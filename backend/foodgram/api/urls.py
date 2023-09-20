@@ -26,11 +26,15 @@ schema_view = get_schema_view(
 )
 router = DefaultRouter()
 router.register(r'recipes', RecipesViewSet)  # рецепты
+router.register(r'api/recipes', RecipesViewSet, basename='recipes')
 router.register(r'tags', TagsViewSet)  # теги
+router.register(r'api/tags', TagsViewSet, basename='tags')
 router.register(r'ingredients', IngredientsViewSet)  # ингредиенты
+router.register(r'api/ingredients', IngredientsViewSet, basename='ingredients')  # ингредиенты
 router.register(r'shoppinglist', ShoppingListViewSet)  # список покупок
 router.register(r'favorites', FavoritesViewSet)  # избранное
 router.register(r'follows', FollowViewSet)  # подписки
+router.register(r'api/users', CustomUserViewSet, basename='users')  # 
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -45,11 +49,15 @@ urlpatterns = [
     re_path('auth/', include('djoser.urls')),
     re_path('auth/', include('djoser.urls.authtoken')),
     # api users
-    path('api/users/', CustomUserViewSet.as_view({'get': 'users_list'})),
-    path('api/users/me/', CustomUserViewSet.as_view({'get': 'current_user'})),
+    # path('api/auth/token/login/', CustomUserViewSet.as_view({'post': 'obtain_auth_token'})),
+    
+]
+"""
+    re_path('api/users/', CustomUserViewSet.as_view({'get': 'list'})),
+    re_path('api/users/me/', CustomUserViewSet.as_view({'post': 'current_user'})),
     path('api/users/<int:pk>/', CustomUserViewSet.as_view({'get': 'profile'})),
     path('api/users/register/', CustomUserViewSet.as_view({'post': 'register'})),
     path('api/users/set_password/', CustomUserViewSet.as_view({'post': 'change_password'})),
-    path('api/auth/token/login/', CustomUserViewSet.as_view({'post': 'obtain_auth_token'})),
+    
     path('api/auth/token/logout/', CustomUserViewSet.as_view({'post': 'delete_token'})),
-]
+    """
