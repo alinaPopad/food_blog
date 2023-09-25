@@ -1,7 +1,8 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from users.models import CustomUser
+#from django.contrib.auth import get_user_model
 
-User = get_user_model()
+#User = get_user_model()
 
 
 class Ingredient(models.Model):
@@ -37,7 +38,7 @@ class Tags(models.Model):
 class Recipe(models.Model):
     """ Модель рецепта."""
     author = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='recipes',)
     name_recipe = models.TextField(verbose_name='Название рецепта',)
@@ -45,6 +46,7 @@ class Recipe(models.Model):
         'Картинка',
         upload_to='recipes/',
         blank=True,
+        null=True,  # пока не обязательное на тесте
     )
     text_recipe = models.TextField(verbose_name='Текст рецепта',)
     ingredients = models.ManyToManyField(
@@ -88,7 +90,7 @@ class RecipeIngredient(models.Model):
 class ShoppingList(models.Model):
     """Модель для списка покупок."""
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='shopping_list_user',
         verbose_name='Пользователь'
@@ -117,7 +119,7 @@ class ShoppingList(models.Model):
 class Favorites(models.Model):
     """Модель избранного."""
     user = models.ForeignKey(
-        User,
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='favorites_user',
         verbose_name='Пользователь'

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 from django.contrib.auth.models import User
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
@@ -22,10 +22,10 @@ class CustomUserViewSet(DjoserUserViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserCreateSerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [IsAuthenticatedOrReadOnly]
     page_size = POST_FILTER
 
     @action(detail=False, methods=['GET'])
+    @permission_classes([AllowAny])
     def user_list(self, request, *args, **kwargs):  # список пользователей
         queryset = self.filter_queryset(self.get_queryset())
         total_count = queryset.count()
@@ -62,7 +62,7 @@ class CustomUserViewSet(DjoserUserViewSet):
         serializer = self.get_serializer(user_profile)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['POST'])  # регистрация пользователя
+    @action(detail=False, methods=['POST'], permission_classes=(AllowAny,))  # регистрация пользователя
     def register(self, request):
         serializer = CustomUserCreateSerializer(data=request.data)
         if serializer.is_valid():

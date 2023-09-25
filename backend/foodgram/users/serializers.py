@@ -1,10 +1,8 @@
 from djoser.serializers import UserCreateSerializer
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.relations import SlugRelatedField
 from .models import Follow, CustomUser
-from django.contrib.auth import get_user_model
 import logging
 
 logger = logging.getLogger(__name__)

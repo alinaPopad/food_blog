@@ -33,6 +33,6 @@ class RecipeFilter(filters.FilterSet):
         if not self.request.user.is_authenticated:
             return queryset.none()  # Пустой queryset, если пользователь не авторизован
         return queryset.filter(
-            shopping_cart__in_cart=value,
-            shopping_cart__user=self.request.user
+            shopping_list__in_list=value,
+            shopping_list__user=self.request.user
         )
