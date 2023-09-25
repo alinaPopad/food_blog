@@ -45,25 +45,45 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         }
         return representation
 
-
 class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор для подписки на авторов."""
-    user = serializers.SlugRelatedField(
-        queryset=CustomUser.objects.all(),
-        slug_field="username",
+    user = serializers.HiddenField(
         default=serializers.CurrentUserDefault(),
     )
-    following = SlugRelatedField(
+
+    class Meta:
+        fields = '__all__'
+        model = Follow
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=('user', 'author')
+            )
+        ]
+
+"""
+class FollowSerializer(serializers.ModelSerializer):
+    Сериализатор для подписки на авторов.
+    user = serializers.PrimaryKeyRelatedField(
         queryset=CustomUser.objects.all(),
-        slug_field='username',
         default=serializers.CurrentUserDefault(),
     )
+    following_id = serializers.PrimaryKeyRelatedField(
+        source='following',
+        queryset=CustomUser.objects.all(),
+    )
+    author = serializers.ReadOnlyField(source='following')
 
     def validate_following(self, value):
         if value == self.context["request"].user:
             raise serializers.ValidationError("Нельзя подписаться на себя")
         return value
 
+    def create(self, validated_data):
+        user = self.context["request"].user
+        following_user = validated_data["following"]
+        return Follow.objects.create(user=user, author=following_user)
+    
     class Meta:
         fields = '__all__'
         model = Follow
@@ -73,6 +93,7 @@ class FollowSerializer(serializers.ModelSerializer):
                 fields=('user', 'following')
             )
         ]
+"""
 
 
 """Сериализатор для регистрации по токену"""
