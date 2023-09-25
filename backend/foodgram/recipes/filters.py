@@ -7,6 +7,7 @@ User = get_user_model()
 
 
 class RecipeFilter(filters.FilterSet):
+    """Фильтр для рецептов.(теги/избранное/список покупок)"""
     author = filters.NumberFilter(field_name="author__id")
     tags = filters.CharFilter(field_name="tags__slug", method="filter_by_tags")
 

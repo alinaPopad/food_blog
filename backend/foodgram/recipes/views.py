@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.filters import SearchFilter
 from rest_framework import permissions
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import status
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ from rest_framework.decorators import action
 from users.models import CustomUser
 from .models import Recipe, Tags, Ingredient, ShoppingList, Favorites, RecipeIngredient
 from .serializers import FavoritesSerializer, RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingListSerializer
-from .permissions import IsAuthorOrReadOnly, IsAuthor
+from .permissions import IsAuthorOrReadOnly
 from .filters import RecipeFilter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -201,6 +201,10 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
         ingredient = self.get_object()
         serializer = self.get_serializer(ingredient)
         return Response(serializer.data)
+
+
+
+
 
 """
 class ShoppingListViewSet(viewsets.ModelViewSet):
