@@ -29,61 +29,21 @@ class CustomUserViewSet(DjoserUserViewSet):
     serializer_class = CustomUserCreateSerializer
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
-    permission_classes = IsAuthenticatedOrReadOnly
-
-    def get_queryset(self):
-        """Доступ неавторизованным пользователея к методу get."""
-        queryset = super().get_queryset()
-        if self.action == "list" and settings.DJOSER['HIDE_USERS']:
-            queryset = queryset.all()
-        return queryset
-
-    def get_permissions(self):
-        if self.action == "list" or self.action == "retrieve":
-            self.permission_classes = [IsAuthenticatedOrReadOnly]
-        return super().get_permissions()
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def custom_user_list(self, request):
-        """Получение списка пользователей и регистрация."""
-        if request.method == 'GET':
-            queryset = CustomUser.objects.all()
-            total_count = queryset.count()
-            page = request.query_params.get('page')
-            page_size = request.query_params.get('page_size', POST_FILTER)
-
-            if page is not None:
-                paginator = Paginator(queryset, page_size)
-                try:
-                    users = paginator.page(page)
-                except EmptyPage:
-                    return Response(
-                        {'detail': 'Страница не найдена.'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-
-                serializer = CustomUserCreateSerializer(users, many=True)
-                data_list = {
-                    'count': total_count,
-                    'next': users.has_next(),
-                    'previous': users.has_previous(),
-                    'results': serializer.data
-                }
-                return Response(data_list)
-
-            serializer = CustomUserCreateSerializer(queryset, many=True)
-            return Response(serializer.data)
-        elif request.method == 'POST':
-            serializer = CustomUserCreateSerializer(data=request.data)
-            if serializer.is_valid():
-                user = serializer.save()
-                return Response(
-                    CustomUserCreateSerializer(user).data,
-                    status=status.HTTP_201_CREATED
-                )
+        """Регистрация нового пользователя."""
+        serializer = CustomUserCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
             return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-                )
+                CustomUserCreateSerializer(user).data,
+                status=status.HTTP_201_CREATED
+            )
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+            )
 
     def profile(self, request, pk=None):
         """Просмотр профиля по id."""
@@ -91,12 +51,12 @@ class CustomUserViewSet(DjoserUserViewSet):
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
-    def current_user_profile(self, request):
+    def current_user_profile(self, request, pk=None):
         """Просмотр своего профиля."""
+        user = request.user
         if not request.user.is_authenticated:
             return Response({'detail': 'Пользователь не авторизован.'})
 
-        user = request.user
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
@@ -200,12 +160,3 @@ class CustomUserViewSet(DjoserUserViewSet):
         subscriptions = Follow.objects.filter(user=request.user)
         serializer = FollowSerializer(subscriptions, many=True)
         return Response(serializer.data)
-
-
-"""
-    def get_permissions(self):
-        if self.action == "list" or self.action == "profile":
-            self.permission_classes = [IsAuthenticatedOrReadOnly]
-        elif self.action == "current_user_profile":
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()"""
