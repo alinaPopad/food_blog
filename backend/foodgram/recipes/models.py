@@ -43,7 +43,7 @@ class Recipe(models.Model):
         'Картинка',
         upload_to='recipes/',
         blank=True,
-        null=True,  # пока не обязательное на тесте
+        null=True,
     )
     text_recipe = models.TextField(verbose_name='Текст рецепта',)
     ingredients = models.ManyToManyField(

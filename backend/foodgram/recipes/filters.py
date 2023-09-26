@@ -24,7 +24,7 @@ class RecipeFilter(filters.FilterSet):
 
     def filter_by_favorites(self, queryset, name, value):
         if not self.request.user.is_authenticated:
-            return queryset.none()  # Пустой queryset, если пользователь не авторизован
+            return queryset.none()
         return queryset.filter(
             favorites__is_favorite=value,
             favorites__user=self.request.user
@@ -32,7 +32,7 @@ class RecipeFilter(filters.FilterSet):
 
     def filter_by_shopping_cart(self, queryset, name, value):
         if not self.request.user.is_authenticated:
-            return queryset.none()  # Пустой queryset, если пользователь не авторизован
+            return queryset.none()
         return queryset.filter(
             shopping_list__in_list=value,
             shopping_list__user=self.request.user

@@ -1,5 +1,6 @@
 from django.contrib import admin
-from recipes.models import Recipe, Ingredient, Tags, RecipeIngredient, Favorites, ShoppingList
+from recipes.models import Recipe, Ingredient, Tags, RecipeIngredient
+from recipes.models import Favorites, ShoppingList
 from users.models import CustomUser, Follow
 
 admin.site.register(Recipe)

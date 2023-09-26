@@ -24,4 +24,5 @@ class Command(BaseCommand):
                 unit = item['measurement_unit']
                 Ingredient.objects.create(title=title, unit=unit)
 
-        self.stdout.write(self.style.SUCCESS('Successfully loaded ingredients'))
+        self.stdout.write(
+            self.style.SUCCESS('Successfully loaded ingredients'))

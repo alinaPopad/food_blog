@@ -1,22 +1,16 @@
-from django.conf import settings
-from django.core.paginator import Paginator, EmptyPage
 from django.shortcuts import get_object_or_404
 
-from rest_framework import viewsets, status
-from rest_framework.authentication import TokenAuthentication
+from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.filters import SearchFilter
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.authtoken.models import Token
 
 from .models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
-from .permissions import AllowAnyGet
 
 from djoser.views import UserViewSet as DjoserUserViewSet
 
@@ -29,7 +23,7 @@ class CustomUserViewSet(DjoserUserViewSet):
     serializer_class = CustomUserCreateSerializer
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthenticated, )
 
     def custom_user_list(self, request):
         """Регистрация нового пользователя."""
@@ -47,7 +41,12 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     def profile(self, request, pk=None):
         """Просмотр профиля по id."""
-        user = self.get_object()
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Пользователь не авторизован.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        user = get_object_or_404(CustomUser, pk=id)
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
@@ -55,7 +54,10 @@ class CustomUserViewSet(DjoserUserViewSet):
         """Просмотр своего профиля."""
         user = request.user
         if not request.user.is_authenticated:
-            return Response({'detail': 'Пользователь не авторизован.'})
+            return Response(
+                {'detail': 'Пользователь не авторизован.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         serializer = self.get_serializer(user)
         return Response(serializer.data)
@@ -63,15 +65,24 @@ class CustomUserViewSet(DjoserUserViewSet):
     @action(detail=False, methods=['post'])
     def change_password(self, request):
         """Смена пароля."""
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Пользователь не авторизован.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         user = request.user
         current_password = request.data.get('current_password')
         new_password = request.data.get('new_password')
 
         if not current_password or not new_password:
-            return Response({'detail': 'Введите новый и текущий пароль.'})
+            return Response({'detail': 'Введите новый и текущий пароль.'},
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
 
         if not user.check_password(current_password):
-            return Response({'detail': 'Неправильный пароль.'})
+            return Response({'detail': 'Неправильный пароль.'},
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
 
         user.set_password(new_password)
         user.save()
@@ -155,7 +166,9 @@ class CustomUserViewSet(DjoserUserViewSet):
     @action(detail=False, methods=['GET'], url_path='subscriptions')
     def list_subscriptions(self, request):
         if not request.user.is_authenticated:
-            return Response({'detail': 'Пользователь не авторизован.'})
+            return Response({'detail': 'Пользователь не авторизован.'},
+                            status=status.HTTP_401_UNAUTHORIZED
+                            )
 
         subscriptions = Follow.objects.filter(user=request.user)
         serializer = FollowSerializer(subscriptions, many=True)
