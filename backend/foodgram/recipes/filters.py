@@ -1,7 +1,7 @@
 import django_filters as filters
 from django.contrib.auth import get_user_model
 
-from .models import Recipe
+from .models import Recipe, Ingredient
 
 User = get_user_model()
 
@@ -15,7 +15,7 @@ class RecipeFilter(filters.FilterSet):
         model = Recipe
         fields = {
             'author': ['exact'],
-            'tag': ['exact', 'in'],
+            'tags': ['exact', 'in'],
         }
 
     def filter_by_tags(self, queryset, name, value):
@@ -37,3 +37,11 @@ class RecipeFilter(filters.FilterSet):
             shopping_list__in_list=value,
             shopping_list__user=self.request.user
         )
+
+
+class IngredientFilter(filters.FilterSet):
+    title = filters.CharFilter(lookup_expr='icontains')
+
+    class Meta:
+        model = Ingredient
+        fields = ['name']

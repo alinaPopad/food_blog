@@ -1,22 +1,11 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 from users.models import CustomUser
-
-
-class Ingredient(models.Model):
-    """Модель ингредиентов."""
-    title = models.CharField(
-        max_length=50,
-        verbose_name='Название ингредиента',
-    )
-    unit = models.CharField(
-        max_length=50,
-        verbose_name='Единицы измерения',
-    )
 
 
 class Tags(models.Model):
     """ Модель тегов."""
-    title = models.CharField(
+    name = models.CharField(
         max_length=50,
         verbose_name='Название тега',
     )
@@ -26,10 +15,25 @@ class Tags(models.Model):
         db_index=True,
         verbose_name='slug',
     )
-    color_code = models.TextField(verbose_name='Цветовой код',)
+    color = models.TextField(verbose_name='Цветовой код',)
 
     def __str__(self) -> str:
-        return self.title
+        return self.name
+
+
+class Ingredient(models.Model):
+    """Модель ингредиентов."""
+    name = models.CharField(
+        max_length=100,
+        verbose_name='Название ингредиента',
+    )
+    measurement_unit = models.CharField(
+        max_length=100,
+        verbose_name='Единицы измерения',
+    )
+
+    def __str__(self):
+        return f'{self.name}, {self.measurement_unit}'
 
 
 class Recipe(models.Model):
@@ -38,20 +42,20 @@ class Recipe(models.Model):
         CustomUser,
         on_delete=models.CASCADE,
         related_name='recipes',)
-    name_recipe = models.TextField(verbose_name='Название рецепта',)
+    name = models.TextField(verbose_name='Название рецепта',)
     image = models.ImageField(
         'Картинка',
         upload_to='recipes/',
         blank=True,
         null=True,
     )
-    text_recipe = models.TextField(verbose_name='Текст рецепта',)
+    text = models.TextField(verbose_name='Текст рецепта',)
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredient',
         verbose_name='Ингредиенты',
     )
-    tag = models.ManyToManyField(Tags)
+    tags = models.ManyToManyField(Tags)
     cooking_time = models.IntegerField(
         null=True,
         default=0,
@@ -77,10 +81,9 @@ class RecipeIngredient(models.Model):
         null=False,
         related_name="ingredients"
     )
-    quantity = models.DecimalField(
-        max_digits=10,
-        decimal_places=1,
-        verbose_name='Количество ингредиента'
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        validators=[MinValueValidator(1, message='Минимальное количество 1!')]
     )
 
 

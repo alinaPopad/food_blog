@@ -16,10 +16,12 @@ from reportlab.pdfbase.ttfonts import TTFont
 from users.models import CustomUser
 from .models import Recipe, Tags, Ingredient, ShoppingList
 from .models import Favorites, RecipeIngredient
-from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer
+from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer, CreateUpdateRecipeSerializer
 from .permissions import IsAuthorOrReadOnly
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
+import logging
 
+logger = logging.getLogger(__name__)
 
 POST_FILTER = 6
 
@@ -27,7 +29,6 @@ POST_FILTER = 6
 class RecipesViewSet(viewsets.ModelViewSet):
     """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = LimitOffsetPagination
     page_size = POST_FILTER
@@ -36,36 +37,60 @@ class RecipesViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
     )
     filter_class = RecipeFilter
-    search_fields = ('tag__slug', 'title',)
+    search_fields = ('tags__slug', 'name',)
+
+    def get_serializer_class(self):
+        if self.action == 'create' or self.action == 'update':
+            return CreateUpdateRecipeSerializer
+        else:
+            return RecipeSerializer
 
     def list(self, request, *args, **kwargs):
-        """Получение списка рецептов с фильтрацией."""
-        queryset = self.get_queryset()
-        if 'tag' in request.query_params:
-            queryset = self.filter_class(
-                request.query_params, queryset=queryset).qs
-        if 'author' in request.query_params:
-            queryset = queryset.filter(
-                author__id=request.query_params['author'])
-        if 'favorite' in request.query_params:
-            queryset = self.filter_class(
-                request.query_params, queryset=queryset).qs
-        if 'shopping_list' in request.query_params:
-            queryset = self.filter_class(
-                request.query_params, queryset=queryset).qs
+        queryset = self.filter_queryset(self.get_queryset())
+
+        total_count = queryset.count()
+
         page = self.paginate_queryset(queryset)
         if page:
             serializer = self.get_serializer(page, many=True)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
-
-        if page is not None:
             return self.get_paginated_response(serializer.data)
 
-        return Response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'total_count': total_count, 'recipes': serializer.data})
+    
+    #def list(self, request, *args, **kwargs):
+        #"""Получение списка рецептов с фильтрацией."""
+        #queryset = self.get_queryset()
+        #total_count = queryset.count()
+
+        #if 'tag' in request.query_params:
+        #    queryset = self.filter_class(
+        #        request.query_params, queryset=queryset).qs
+        #if 'author' in request.query_params:
+        #    queryset = queryset.filter(
+        #        author__id=request.query_params['author'])
+        #if 'favorite' in request.query_params:
+        #    queryset = self.filter_class(
+        #        request.query_params, queryset=queryset).qs
+        #if 'shopping_list' in request.query_params:
+        #    queryset = self.filter_class(
+        #        request.query_params, queryset=queryset).qs
+        #page = self.paginate_queryset(queryset)
+        #if page:
+        #    serializer = self.get_serializer(page, many=True)
+        #else:
+        #    serializer = self.get_serializer(queryset, many=True)
+
+        #if page is not None:
+        #    return self.get_paginated_response(serializer.data)
+
+        #return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
+        if request.method == 'POST':
+            data = request.data
+            print("Data from frontend:", data)
         if (
             not request.user.is_authenticated or
             not isinstance(request.user, CustomUser)
@@ -102,7 +127,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Недостаточно прав.'},
                             status=status.HTTP_403_FORBIDDEN
                             )
-        serializer = RecipeSerializer(recipe, data=request.data)
+        serializer = CreateUpdateRecipeSerializer(recipe, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -248,6 +273,7 @@ class TagsViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet для работы с тегами."""
     queryset = Tags.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
     def list(self, request):
         """Получение списка тегов."""
@@ -267,17 +293,18 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet для работы с ингредиентыми."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['title']
-
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+    pagination_class = None
+"""
     def list(self, request, *args, **kwargs):
-        """Получение списка игредиентов."""
+        Получение списка игредиентов.
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        """Получение ингредиента по id."""
+        Получение ингредиента по id.
         ingredient = self.get_object()
         serializer = self.get_serializer(ingredient)
-        return Response(serializer.data)
+        return Response(serializer.data)"""

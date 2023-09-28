@@ -13,16 +13,16 @@ class Command(BaseCommand):
             csv_data = csv.reader(csvfile)
             next(csv_data)
             for row in csv_data:
-                title, unit = row
-                Ingredient.objects.create(title=title, unit=unit)
+                name, measurement_unit = row
+                Ingredient.objects.create(name=name, measurement_unit=measurement_unit)
 
         # Load data from JSON
         with open('data/ingredients.json', 'r', encoding='utf-8') as jsonfile:
             json_data = json.load(jsonfile)
             for item in json_data:
-                title = item['name']
-                unit = item['measurement_unit']
-                Ingredient.objects.create(title=title, unit=unit)
+                name = item['name']
+                measurement_unit = item['measurement_unit']
+                Ingredient.objects.create(name=name, measurement_unit=measurement_unit)
 
         self.stdout.write(
             self.style.SUCCESS('Successfully loaded ingredients'))
