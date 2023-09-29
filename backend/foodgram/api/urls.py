@@ -5,7 +5,7 @@ from rest_framework.routers import DefaultRouter
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
-from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet
+from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet  #FavoritesViewSet
 from users.views import CustomUserViewSet
 
 router = DefaultRouter()
@@ -13,7 +13,7 @@ router.register(r'users', CustomUserViewSet, basename='users')  # пользов
 router.register(r'recipes', RecipesViewSet)  # рецепты
 router.register(r'tags', TagsViewSet)  # теги
 router.register(r'ingredients', IngredientsViewSet)  # ингредиенты
-
+#router.register(r'favorites', FavoritesViewSet, basename='favorites')  # избранное
 
 urlpatterns = [
     re_path('', include(router.urls)),

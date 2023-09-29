@@ -9,14 +9,16 @@ User = get_user_model()
 class RecipeFilter(filters.FilterSet):
     """Фильтр для рецептов.(теги/избранное/список покупок)"""
     author = filters.NumberFilter(field_name="author__id")
-    tags = filters.CharFilter(field_name="tags__slug", method="filter_by_tags")
 
     class Meta:
         model = Recipe
         fields = {
             'author': ['exact'],
-            'tags': ['exact', 'in'],
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filters['tags'] = filters.CharFilter(method="filter_by_tags")
 
     def filter_by_tags(self, queryset, name, value):
         tags = value.split(",")

@@ -2,6 +2,7 @@ import os
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status, filters
+from rest_framework import generics, permissions
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
@@ -12,11 +13,17 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from django.db.models import Prefetch
 
 from users.models import CustomUser
 from .models import Recipe, Tags, Ingredient, ShoppingList
 from .models import Favorites, RecipeIngredient
-from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer, CreateUpdateRecipeSerializer
+from .serializers import (RecipeSerializer, TagSerializer,
+                          IngredientSerializer,
+                          CreateUpdateRecipeSerializer,
+                          IngredientInRecipeSerializer
+                        )
+#from .serializers import FavoritesSerializer
 from .permissions import IsAuthorOrReadOnly
 from .filters import RecipeFilter, IngredientFilter
 import logging
@@ -44,6 +51,15 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return CreateUpdateRecipeSerializer
         else:
             return RecipeSerializer
+        
+    #def get_queryset(self):
+     #   ingredients_prefetch = Prefetch(
+      #      'ingredients',
+       #     queryset=RecipeIngredient.objects.select_related('ingredient'),
+        #    to_attr='recipe_ingredients'
+        #)
+
+        #return Recipe.objects.prefetch_related(ingredients_prefetch).all()
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -57,34 +73,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response({'total_count': total_count, 'recipes': serializer.data})
-    
-    #def list(self, request, *args, **kwargs):
-        #"""Получение списка рецептов с фильтрацией."""
-        #queryset = self.get_queryset()
-        #total_count = queryset.count()
-
-        #if 'tag' in request.query_params:
-        #    queryset = self.filter_class(
-        #        request.query_params, queryset=queryset).qs
-        #if 'author' in request.query_params:
-        #    queryset = queryset.filter(
-        #        author__id=request.query_params['author'])
-        #if 'favorite' in request.query_params:
-        #    queryset = self.filter_class(
-        #        request.query_params, queryset=queryset).qs
-        #if 'shopping_list' in request.query_params:
-        #    queryset = self.filter_class(
-        #        request.query_params, queryset=queryset).qs
-        #page = self.paginate_queryset(queryset)
-        #if page:
-        #    serializer = self.get_serializer(page, many=True)
-        #else:
-        #    serializer = self.get_serializer(queryset, many=True)
-
-        #if page is not None:
-        #    return self.get_paginated_response(serializer.data)
-
-        #return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
@@ -101,10 +89,25 @@ class RecipesViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(data=request.data)
+    
         if serializer.is_valid():
+            ingredients_data = request.data.get('ingredients', [])
+            ingredients_serializer = IngredientInRecipeSerializer(
+                data=ingredients_data,
+                many=True
+            )
+            ingredients_serializer.is_valid(raise_exception=True)
             recipe = serializer.save(author=request.user)
+
+            for ingredient_data in ingredients_serializer.validated_data:
+                ingredient = Ingredient.objects.get(id=ingredient_data['id'])
+                amount = ingredient_data['amount']
+                RecipeIngredient.objects.create(recipe=recipe,
+                                                ingredient=ingredient,
+                                                amount=amount)
+        
             return Response(
-                self.get_serializer(recipe).data,
+                serializer.data,
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -149,7 +152,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         recipe.delete()
         return Response()
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorites')
+    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
     def favorites(self, request, pk=None):
         """Метод для управления избранным."""
         recipe = self.get_object()
@@ -169,6 +172,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             Favorites.objects.create(user=user, recipe=recipe)
+            #print(Favorites.objects.create(user=user, recipe=recipe))
             return Response(
                 {'detail': 'Рецепт добавлен в избранное.'},
                 status=status.HTTP_201_CREATED
@@ -296,7 +300,32 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
     pagination_class = None
+
+
+
+
+
+
+
+
+
+
+
 """
+class FavoritesViewSet(generics.ListAPIView):
+    serializer_class = FavoritesSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Favorites.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+
+
+
     def list(self, request, *args, **kwargs):
         Получение списка игредиентов.
         queryset = self.filter_queryset(self.get_queryset())
@@ -308,3 +337,30 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
         ingredient = self.get_object()
         serializer = self.get_serializer(ingredient)
         return Response(serializer.data)"""
+#def list(self, request, *args, **kwargs):
+        #"""Получение списка рецептов с фильтрацией."""
+        #queryset = self.get_queryset()
+        #total_count = queryset.count()
+
+        #if 'tag' in request.query_params:
+        #    queryset = self.filter_class(
+        #        request.query_params, queryset=queryset).qs
+        #if 'author' in request.query_params:
+        #    queryset = queryset.filter(
+        #        author__id=request.query_params['author'])
+        #if 'favorite' in request.query_params:
+        #    queryset = self.filter_class(
+        #        request.query_params, queryset=queryset).qs
+        #if 'shopping_list' in request.query_params:
+        #    queryset = self.filter_class(
+        #        request.query_params, queryset=queryset).qs
+        #page = self.paginate_queryset(queryset)
+        #if page:
+        #    serializer = self.get_serializer(page, many=True)
+        #else:
+        #    serializer = self.get_serializer(queryset, many=True)
+
+        #if page is not None:
+        #    return self.get_paginated_response(serializer.data)
+
+        #return Response(serializer.data)
