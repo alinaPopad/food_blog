@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from users.models import CustomUser
+from django.db.models.constraints import UniqueConstraint
 
 
 class Tags(models.Model):
@@ -45,7 +46,7 @@ class Recipe(models.Model):
     name = models.TextField(verbose_name='Название рецепта',)
     image = models.ImageField(
         'Картинка',
-        upload_to='recipes/',
+        upload_to='app/media/',
         blank=True,
         null=True,
     )
@@ -67,12 +68,16 @@ class Recipe(models.Model):
         default_related_name = 'recipes'
         ordering = ['-pub_date']
 
+    def get_ingredients(self):
+        return self.ingredients.through.objects.filter(recipe=self)
+
 
 class RecipeIngredient(models.Model):
     """Модель для связи many to many."""
     recipe = models.ForeignKey(
         Recipe,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="ingredient_used"
     )
     ingredient = models.ForeignKey(
         Ingredient,
@@ -86,6 +91,14 @@ class RecipeIngredient(models.Model):
         validators=[MinValueValidator(1, message='Минимальное количество 1!')]
     )
 
+    class Meta:
+        verbose_name = 'Ингредиент в рецепте.'
+        verbose_name_plural = 'Ингредиенты в рецептах.'
+        constraints = [
+            UniqueConstraint(fields=['recipe', 'ingredient'],
+                             name='recipe_ingredient_constraint')
+        ]
+
 
 class ShoppingList(models.Model):
     """Модель для списка покупок."""
@@ -98,7 +111,7 @@ class ShoppingList(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='shopping_list_recipe',
+        related_name='is_in_shopping_cart',
         verbose_name='Рецепт'
     )
 
@@ -143,3 +156,6 @@ class Favorites(models.Model):
 
     def __str__(self):
         return f'{self.user} {self.recipe}'
+
+class Test(models.Model):
+    pass

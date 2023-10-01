@@ -4,6 +4,8 @@ from django.conf import settings
 from rest_framework.routers import DefaultRouter
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.conf import settings
+from django.conf.urls.static import static
 
 from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet  #FavoritesViewSet
 from users.views import CustomUserViewSet
@@ -21,6 +23,8 @@ urlpatterns = [
     re_path('auth/', include('djoser.urls.authtoken')),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 """
 schema_view = get_schema_view(

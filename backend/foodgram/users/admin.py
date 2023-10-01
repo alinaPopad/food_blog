@@ -11,3 +11,17 @@ admin.site.register(CustomUser)
 admin.site.register(Favorites)
 admin.site.register(ShoppingList)
 admin.site.register(Follow)
+"""
+class AdminTag(admin.TabularInline):
+    model = Tags
+    min_num = 1
+
+class AdminIngredient(admin.TabularInline):
+    model = RecipeIngredient
+    min_num = 1
+
+class AdminRecipe(admin.ModelAdmin):
+    list_filter = ('name', 'author', 'tags')
+    list_display = ('name', 'amount_favorite')
+    inlines = [AdminIngredient, AdminTag]
+"""

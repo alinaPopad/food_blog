@@ -14,6 +14,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from django.db.models import Prefetch
+from django.contrib.auth.models import AnonymousUser
 
 from users.models import CustomUser
 from .models import Recipe, Tags, Ingredient, ShoppingList
@@ -51,34 +52,41 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return CreateUpdateRecipeSerializer
         else:
             return RecipeSerializer
-        
-    #def get_queryset(self):
-     #   ingredients_prefetch = Prefetch(
-      #      'ingredients',
-       #     queryset=RecipeIngredient.objects.select_related('ingredient'),
-        #    to_attr='recipe_ingredients'
-        #)
 
-        #return Recipe.objects.prefetch_related(ingredients_prefetch).all()
+    def get_queryset(self):
+        queryset = Recipe.objects.all()
+        return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
+    #def list(self, request, *args, **kwargs):
+        #queryset = self.filter_queryset(self.get_queryset())
+
+        #total_count = queryset.count()
+
+        #page = self.paginate_queryset(queryset)
+        #if page:
+            #serializer = self.get_serializer(page, many=True)
+            #return self.get_paginated_response(serializer.data)
+
+        #serializer = self.get_serializer(queryset, many=True)
+        #return Response({'total_count': total_count, 'recipes': serializer.data})
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
-        total_count = queryset.count()
-
         page = self.paginate_queryset(queryset)
-        if page:
+
+        if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
         serializer = self.get_serializer(queryset, many=True)
-        return Response({'total_count': total_count, 'recipes': serializer.data})
+        return Response({'recipes': serializer.data})
 
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
-        if request.method == 'POST':
-            data = request.data
-            print("Data from frontend:", data)
+        #if request.method == 'POST':
+         #   data = request.data
+        #    print("Data from frontend:", data)
         if (
             not request.user.is_authenticated or
             not isinstance(request.user, CustomUser)
@@ -89,27 +97,15 @@ class RecipesViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(data=request.data)
-    
-        if serializer.is_valid():
-            ingredients_data = request.data.get('ingredients', [])
-            ingredients_serializer = IngredientInRecipeSerializer(
-                data=ingredients_data,
-                many=True
-            )
-            ingredients_serializer.is_valid(raise_exception=True)
-            recipe = serializer.save(author=request.user)
 
-            for ingredient_data in ingredients_serializer.validated_data:
-                ingredient = Ingredient.objects.get(id=ingredient_data['id'])
-                amount = ingredient_data['amount']
-                RecipeIngredient.objects.create(recipe=recipe,
-                                                ingredient=ingredient,
-                                                amount=amount)
-        
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            recipe_id = serializer.instance.id
             return Response(
-                serializer.data,
+                {'detail': 'Recipe created successfully',
+                 'recipe_id': recipe_id},
                 status=status.HTTP_201_CREATED
-            )
+                )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, *args, **kwargs):

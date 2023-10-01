@@ -1,5 +1,6 @@
 import django_filters as filters
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from .models import Recipe, Ingredient
 
@@ -25,20 +26,22 @@ class RecipeFilter(filters.FilterSet):
         return queryset.filter(tags__slug__in=tags).distinct()
 
     def filter_by_favorites(self, queryset, name, value):
-        if not self.request.user.is_authenticated:
-            return queryset.none()
-        return queryset.filter(
-            favorites__is_favorite=value,
-            favorites__user=self.request.user
-        )
+        user = self.request.user
+        if user.is_authenticated:
+            return queryset.filter(
+                Q(favorites__is_favorite=value, favorites__user=user) | Q(favorites=None)
+            )
+        else:
+            return queryset.filter(favorites=None)
 
     def filter_by_shopping_cart(self, queryset, name, value):
-        if not self.request.user.is_authenticated:
-            return queryset.none()
-        return queryset.filter(
-            shopping_list__in_list=value,
-            shopping_list__user=self.request.user
-        )
+        user = self.request.user
+        if user.is_authenticated:
+            return queryset.filter(
+                Q(is_in_shopping_cart=value, is_in_shopping_cart__user=user) | Q(is_in_shopping_cart=None)
+            )
+        else:
+            return queryset.filter(is_in_shopping_cart=None)
 
 
 class IngredientFilter(filters.FilterSet):
