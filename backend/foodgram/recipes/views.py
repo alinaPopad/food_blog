@@ -60,18 +60,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    #def list(self, request, *args, **kwargs):
-        #queryset = self.filter_queryset(self.get_queryset())
-
-        #total_count = queryset.count()
-
-        #page = self.paginate_queryset(queryset)
-        #if page:
-            #serializer = self.get_serializer(page, many=True)
-            #return self.get_paginated_response(serializer.data)
-
-        #serializer = self.get_serializer(queryset, many=True)
-        #return Response({'total_count': total_count, 'recipes': serializer.data})
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
