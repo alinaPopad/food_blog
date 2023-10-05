@@ -15,6 +15,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from django.db.models import Prefetch
 from django.contrib.auth.models import AnonymousUser
+from django.shortcuts import redirect
+from django.urls import reverse
 
 from users.models import CustomUser
 from .models import Recipe, Tags, Ingredient, ShoppingList
@@ -22,12 +24,13 @@ from .models import Favorites, RecipeIngredient
 from .serializers import (RecipeSerializer, TagSerializer,
                           IngredientSerializer,
                           CreateUpdateRecipeSerializer,
-                          IngredientInRecipeSerializer
-                        )
+                          IngredientInRecipeSerializer,
+                          )
 #from .serializers import FavoritesSerializer
 from .permissions import IsAuthorOrReadOnly
 from .filters import RecipeFilter, IngredientFilter
 import logging
+from .pagination import DefaultPagination
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +41,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
-    pagination_class = LimitOffsetPagination
-    page_size = POST_FILTER
+    pagination_class = DefaultPagination
     filter_backends = (
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -48,15 +50,18 @@ class RecipesViewSet(viewsets.ModelViewSet):
     search_fields = ('tags__slug', 'name',)
 
     def get_serializer_class(self):
-        if self.action == 'create' or self.action == 'update':
+        if self.action == 'create' or self.action == 'partial_update':
             return CreateUpdateRecipeSerializer
         else:
             return RecipeSerializer
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, view=self)
+        print(self.request.query_params)
         return queryset
-    
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
@@ -72,9 +77,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
-        #if request.method == 'POST':
-         #   data = request.data
-        #    print("Data from frontend:", data)
+        if request.method == 'POST':
+            data = request.data
+            print("Data from frontend:", data)
         if (
             not request.user.is_authenticated or
             not isinstance(request.user, CustomUser)
@@ -114,6 +119,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Недостаточно прав.'},
                             status=status.HTTP_403_FORBIDDEN
                             )
+        print("Request data:", request.data)
         serializer = CreateUpdateRecipeSerializer(recipe, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -134,7 +140,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         recipe.delete()
-        return Response()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post', 'delete'], url_path='favorite')
     def favorites(self, request, pk=None):
@@ -156,7 +162,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             Favorites.objects.create(user=user, recipe=recipe)
-            #print(Favorites.objects.create(user=user, recipe=recipe))
             return Response(
                 {'detail': 'Рецепт добавлен в избранное.'},
                 status=status.HTTP_201_CREATED
@@ -288,23 +293,23 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
-
-
-
-
-
-
-
 """
 class FavoritesViewSet(generics.ListAPIView):
     serializer_class = FavoritesSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_extra_actions(self):
+        extra_actions = [
+            ('get_queryset', 'list', 'custom-action/'),
+        ]
+        return extra_actions
+
     def get_queryset(self):
-        return Favorites.objects.filter(user=self.request.user)
+        return Favorites.objects.filter(user=self.request.user, is_favorited=1)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
 
 
 

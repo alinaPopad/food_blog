@@ -18,4 +18,6 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
             return True
         if isinstance(obj, Recipe) and request.method == 'POST':
             return True
+        if isinstance(obj, Recipe) and request.method == 'DELETE':
+            return True
         return obj.author == request.user

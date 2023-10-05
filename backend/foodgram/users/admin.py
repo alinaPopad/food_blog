@@ -1,6 +1,6 @@
 from django.contrib import admin
 from recipes.models import Recipe, Ingredient, Tags, RecipeIngredient
-from recipes.models import Favorites, ShoppingList
+from recipes.models import Favorites, ShoppingList, RecipeTag
 from users.models import CustomUser, Follow
 
 admin.site.register(Recipe)
@@ -11,6 +11,7 @@ admin.site.register(CustomUser)
 admin.site.register(Favorites)
 admin.site.register(ShoppingList)
 admin.site.register(Follow)
+admin.site.register(RecipeTag)
 """
 class AdminTag(admin.TabularInline):
     model = Tags

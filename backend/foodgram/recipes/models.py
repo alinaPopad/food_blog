@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from users.models import CustomUser
 from django.db.models.constraints import UniqueConstraint
+from django.core.validators import MinLengthValidator
 
 
 class Tags(models.Model):
@@ -27,6 +28,7 @@ class Ingredient(models.Model):
     name = models.CharField(
         max_length=100,
         verbose_name='Название ингредиента',
+        validators=[MinLengthValidator(3)]
     )
     measurement_unit = models.CharField(
         max_length=100,
@@ -56,7 +58,11 @@ class Recipe(models.Model):
         through='RecipeIngredient',
         verbose_name='Ингредиенты',
     )
-    tags = models.ManyToManyField(Tags)
+    tags = models.ManyToManyField(
+        Tags,
+        related_name='recipes',
+        verbose_name='Теги'
+    )
     cooking_time = models.IntegerField(
         null=True,
         default=0,
@@ -157,5 +163,29 @@ class Favorites(models.Model):
     def __str__(self):
         return f'{self.user} {self.recipe}'
 
-class Test(models.Model):
-    pass
+
+class RecipeTag(models.Model):
+    """Модель для связи many to many для тегов."""
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name="tag_used"
+    )
+    tag = models.ForeignKey(
+        Tags,
+        on_delete=models.CASCADE,
+        blank=False,
+        null=False,
+        related_name="tags"
+    )
+
+    class Meta:
+        verbose_name = 'Тег рецепта'
+        verbose_name_plural = 'Теги рецепта'
+        constraints = [
+            models.UniqueConstraint(fields=['tag', 'recipe'],
+                                    name='unique_tagrecipe')
+        ]
+
+    def __str__(self):
+        return f'{self.tag} {self.recipe}'

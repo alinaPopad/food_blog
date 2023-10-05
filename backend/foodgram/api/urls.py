@@ -7,7 +7,7 @@ from drf_yasg import openapi
 from django.conf import settings
 from django.conf.urls.static import static
 
-from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet  #FavoritesViewSet
+from recipes.views import RecipesViewSet,  TagsViewSet, IngredientsViewSet
 from users.views import CustomUserViewSet
 
 router = DefaultRouter()
@@ -24,7 +24,9 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT)
 
 """
 schema_view = get_schema_view(
