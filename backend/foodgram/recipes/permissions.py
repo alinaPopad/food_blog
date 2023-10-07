@@ -6,8 +6,6 @@ from .models import Recipe
 class IsAuthorOrReadOnly(permissions.BasePermission):
     """Permission для доступа к рецептам."""
     def has_permission(self, request, view):
-        # Разрешить все методы HTTP для неавторизованных пользователей,
-        # для авторизованных - только чтение или создание (POST)
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user.is_authenticated

@@ -60,10 +60,14 @@ class ShoppingListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка покупок."""
     author = SlugRelatedField(slug_field='username', read_only=True)
     image = serializers.ImageField(required=True, write_only=True)
+    count = serializers.SerializerMethodField()
 
     class Meta:
         model = ShoppingList
-        fields = ('name', 'image', 'cooking_time')
+        fields = ('name', 'image', 'cooking_time', 'count')
+
+    def get_count(self, obj):
+        return obj.recipe.all().count()
 
 
 class FavoritesSerializer(serializers.ModelSerializer):
@@ -200,3 +204,33 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         return RecipeSerializer(instance,
                                 context=self.context).data
+
+
+class PublicRecipeSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+    author = CustomUserCreateSerializer(read_only=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'tags',
+            'author',
+            'name',
+            'image',
+            'text',
+            'cooking_time',
+        )
+
+
+class MiniRecipeSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )

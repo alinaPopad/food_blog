@@ -13,16 +13,14 @@ from .models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
 
 from djoser.views import UserViewSet as DjoserUserViewSet
-
-POST_FILTER = 6
+from recipes.pagination import DefaultPagination
 
 
 class CustomUserViewSet(DjoserUserViewSet):
     """ViewSet для управления пользователями."""
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserCreateSerializer
-    pagination_class = LimitOffsetPagination
-    page_size = POST_FILTER
+    pagination_class = DefaultPagination
     permission_classes = (IsAuthenticated, )
 
     def custom_user_list(self, request):
@@ -143,9 +141,12 @@ class CustomUserViewSet(DjoserUserViewSet):
                 subscription = Follow(
                     user=user, author=user_to_modify_subscription)
                 subscription.save()
-                serializer = FollowSerializer(subscription)
+                serializer_data = {
+                    'id': user_to_modify_subscription.id,
+                    'is_subscribed': True
+                }
                 return Response(
-                    serializer.data,
+                    serializer_data,
                     status=status.HTTP_201_CREATED
                 )
         elif request.method == 'DELETE':
@@ -156,7 +157,11 @@ class CustomUserViewSet(DjoserUserViewSet):
                     author=user_to_modify_subscription
                 )
                 subscription.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+                serializer_data = {
+                    'id': user_to_modify_subscription.id,
+                    'is_subscribed': False
+                }
+                return Response(serializer_data, status=status.HTTP_204_NO_CONTENT)
             except Follow.DoesNotExist:
                 return Response(
                     {'detail': 'Подписка не найдена.'},
@@ -165,11 +170,11 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     @action(detail=False, methods=['GET'], url_path='subscriptions')
     def list_subscriptions(self, request):
-        if not request.user.is_authenticated:
-            return Response({'detail': 'Пользователь не авторизован.'},
-                            status=status.HTTP_401_UNAUTHORIZED
-                            )
-
-        subscriptions = Follow.objects.filter(user=request.user)
-        serializer = FollowSerializer(subscriptions, many=True)
-        return Response(serializer.data)
+        queryset = CustomUser.objects.filter(follower__user=self.request.user)
+        if queryset:
+            pages = self.paginate_queryset(queryset)
+            serializer = FollowSerializer(pages, many=True,
+                                          context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        return Response('Вы ни на кого не подписаны.',
+                        status=status.HTTP_400_BAD_REQUEST)

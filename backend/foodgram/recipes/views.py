@@ -25,12 +25,14 @@ from .serializers import (RecipeSerializer, TagSerializer,
                           IngredientSerializer,
                           CreateUpdateRecipeSerializer,
                           IngredientInRecipeSerializer,
+                          PublicRecipeSerializer
                           )
 #from .serializers import FavoritesSerializer
 from .permissions import IsAuthorOrReadOnly
 from .filters import RecipeFilter, IngredientFilter
 import logging
 from .pagination import DefaultPagination
+from reportlab.lib import fonts
 
 logger = logging.getLogger(__name__)
 
@@ -42,17 +44,15 @@ class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = DefaultPagination
-    filter_backends = (
-        DjangoFilterBackend,
-        filters.SearchFilter,
-    )
-    filter_class = RecipeFilter
-    search_fields = ('tags__slug', 'name',)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
             return CreateUpdateRecipeSerializer
-        else:
+        elif self.action in ('list', 'retrieve'):
+            if not self.request.user.is_authenticated:
+                return PublicRecipeSerializer
             return RecipeSerializer
 
     def get_queryset(self):
@@ -205,7 +205,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response(
                 {'detail': 'Рецепт добавлен в список покупок.'},
                 status=status.HTTP_201_CREATED
-            )
+            ) 
 
         if request.method == 'DELETE':
             # Удаление из списка покупок
@@ -230,12 +230,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
             ShoppingList.objects.filter(user=user).
             values_list('recipe', flat=True)
         )
-        font_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            'dejavu-sans-ttf-2.37/dejavu-sans-ttf-2.37/ttf/DejaVuSans.ttf' 
-        )
+        pdfmetrics.registerFontFamily("Helvetica", normal="Helvetica")
+        #font_path = os.path.join(
+        #    os.path.dirname(os.path.abspath(__file__)),
+        #   'dejavu-sans-ttf-2.37', 'dejavu-sans-ttf-2.37', 'ttf', 'DejaVuSans.ttf'
+        #)
 
-        pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+        #pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
             'attachment;'
@@ -247,7 +248,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         for recipe_id in recipes_in_shopping_cart:
             recipe = Recipe.objects.get(pk=recipe_id)
-            pdf.setFont("DejaVuSans", 12)
+            pdf.setFont("Helvetica", 12)
             pdf.drawString(100, 700, recipe.name_recipe)
 
             ingredients = RecipeIngredient.objects.filter(recipe=recipe)
@@ -289,67 +290,3 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
     pagination_class = None
-
-
-
-
-"""
-class FavoritesViewSet(generics.ListAPIView):
-    serializer_class = FavoritesSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_extra_actions(self):
-        extra_actions = [
-            ('get_queryset', 'list', 'custom-action/'),
-        ]
-        return extra_actions
-
-    def get_queryset(self):
-        return Favorites.objects.filter(user=self.request.user, is_favorited=1)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-
-
-
-
-    def list(self, request, *args, **kwargs):
-        Получение списка игредиентов.
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, *args, **kwargs):
-        Получение ингредиента по id.
-        ingredient = self.get_object()
-        serializer = self.get_serializer(ingredient)
-        return Response(serializer.data)"""
-#def list(self, request, *args, **kwargs):
-        #"""Получение списка рецептов с фильтрацией."""
-        #queryset = self.get_queryset()
-        #total_count = queryset.count()
-
-        #if 'tag' in request.query_params:
-        #    queryset = self.filter_class(
-        #        request.query_params, queryset=queryset).qs
-        #if 'author' in request.query_params:
-        #    queryset = queryset.filter(
-        #        author__id=request.query_params['author'])
-        #if 'favorite' in request.query_params:
-        #    queryset = self.filter_class(
-        #        request.query_params, queryset=queryset).qs
-        #if 'shopping_list' in request.query_params:
-        #    queryset = self.filter_class(
-        #        request.query_params, queryset=queryset).qs
-        #page = self.paginate_queryset(queryset)
-        #if page:
-        #    serializer = self.get_serializer(page, many=True)
-        #else:
-        #    serializer = self.get_serializer(queryset, many=True)
-
-        #if page is not None:
-        #    return self.get_paginated_response(serializer.data)
-
-        #return Response(serializer.data)

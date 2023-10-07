@@ -2,36 +2,29 @@ from django_filters import rest_framework as filters
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
-from .models import Recipe, Ingredient, Favorites
+from .models import Recipe, Ingredient, Favorites, Tags
 
 User = get_user_model()
 
 
 class RecipeFilter(filters.FilterSet):
     """Фильтр для рецептов.(теги/избранное/список покупок)"""
-    author = filters.NumberFilter(field_name="author__id")
     is_favorited = filters.BooleanFilter(
         method='filter_is_favorited')
 
+    tags = filters.ModelMultipleChoiceFilter(
+        queryset=Tags.objects.all(),
+        field_name='tags__slug',
+        to_field_name='slug')
+
     class Meta:
         model = Recipe
-        fields = {
-            'author': ['exact'],
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.filters['tags'] = filters.CharFilter(method="filter_by_tags")
-
-    def filter_by_tags(self, queryset, name, value):
-        tags = value.split(",")
-        return queryset.filter(tags__slug__in=tags).distinct()
+        fields = ('tags', 'author',)
 
     def filter_is_favorited(self, queryset, name, value):
         user = self.request.user
-        if value == '1' and user.is_authenticated:
-            favorite_recipes = Favorites.objects.filter(user=user).values_list('recipe', flat=True)
-            return queryset.filter(pk__in=favorite_recipes)
+        if value and not user.is_anonymous:
+            return queryset.filter(favorites_recipe__user=user)
         return queryset
 
     def filter_by_shopping_cart(self, queryset, name, value):
@@ -50,3 +43,15 @@ class IngredientFilter(filters.FilterSet):
     class Meta:
         model = Ingredient
         fields = ['name']
+
+
+""""
+def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filters['tags'] = filters.CharFilter(method="filter_by_tags")
+
+    def filter_by_tags(self, queryset, name, value):
+        tags = value.split(",")
+        print("Received tags:", tags) 
+        return queryset.filter(tags__slug__in=tags).distinct()
+"""
