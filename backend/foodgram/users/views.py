@@ -1,8 +1,7 @@
 from django.shortcuts import get_object_or_404
-
+from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -11,8 +10,6 @@ from rest_framework.authtoken.models import Token
 
 from .models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
-
-from djoser.views import UserViewSet as DjoserUserViewSet
 from recipes.pagination import DefaultPagination
 
 
@@ -170,6 +167,7 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     @action(detail=False, methods=['GET'], url_path='subscriptions')
     def list_subscriptions(self, request):
+        """Просмотр списка подписок."""
         queryset = CustomUser.objects.filter(follower__user=self.request.user)
         if queryset:
             pages = self.paginate_queryset(queryset)

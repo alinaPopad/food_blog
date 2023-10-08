@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS
 from .models import Recipe
 
 
@@ -11,7 +11,6 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        # Разрешить только авторам изменять и удалять объекты
         if request.method in permissions.SAFE_METHODS:
             return True
         if isinstance(obj, Recipe) and request.method == 'POST':
@@ -19,3 +18,10 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         if isinstance(obj, Recipe) and request.method == 'DELETE':
             return True
         return obj.author == request.user
+
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """Permission для персонала."""
+    def has_permission(self, request, view):
+        return (request.method in SAFE_METHODS
+                or request.user.is_staff)

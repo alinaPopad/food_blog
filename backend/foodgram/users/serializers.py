@@ -1,12 +1,7 @@
 from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-from .models import Follow, CustomUser
-from rest_framework.exceptions import ValidationError
-from rest_framework.fields import IntegerField, SerializerMethodField
-from rest_framework import status
 import logging
-from recipes.models import Recipe
+from .models import Follow, CustomUser
 
 
 logger = logging.getLogger(__name__)

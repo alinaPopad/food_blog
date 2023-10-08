@@ -1,51 +1,37 @@
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
-from .models import Recipe, Tags, Ingredient, ShoppingList, Favorites, RecipeIngredient, RecipeTag
-from users.serializers import CustomUserCreateSerializer
-from rest_framework.fields import IntegerField, SerializerMethodField
-from django.db import transaction
+from rest_framework.fields import IntegerField
 from django.core.files.base import ContentFile
 import base64
 import uuid
 import six
-from six import string_types
-from django.db.models import F
 from django.shortcuts import get_object_or_404
+
+from users.serializers import CustomUserCreateSerializer
+from .models import (
+    Recipe, Tags, Ingredient,
+    ShoppingList, Favorites, RecipeIngredient
+)
 
 
 class TagSerializer(serializers.ModelSerializer):
+    """Сериализатор для тегов."""
     class Meta:
         model = Tags
         fields = ('id', 'name', 'color', 'slug')
 
 
-class RecipeTagSerializer(serializers.ModelSerializer):
-    tag_id = serializers.PrimaryKeyRelatedField(
-        queryset=Tags.objects.all(),
-        source='tag',
-        write_only=True)
-
-    class Meta:
-        model = RecipeTag
-        fields = ('tag_id',)
-
-
 class Base64ImageField(serializers.ImageField):
-    """
-    Custom serializer field to handle base64-encoded images.
-    """
-
+    """Сериализатор для изображений."""
     def to_internal_value(self, data):
-        if isinstance(data, six.string_types) and data.startswith('data:image'):
-            # Split the base64 data into format and data
+        if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
-            # Get the file extension (e.g., 'png', 'jpeg')
             ext = format.split('/')[-1]
-            # Generate a random file name
             filename = f"{uuid.uuid4()}.{ext}"
-            # Create a ContentFile from the base64 data
             decoded_file = base64.b64decode(imgstr)
             data = ContentFile(decoded_file, name=filename)
+        elif isinstance(data, bytes):
+            data = ContentFile(data, name=f"{uuid.uuid4()}.jpg")
         return super().to_internal_value(data)
 
 
@@ -60,14 +46,10 @@ class ShoppingListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка покупок."""
     author = SlugRelatedField(slug_field='username', read_only=True)
     image = serializers.ImageField(required=True, write_only=True)
-    count = serializers.SerializerMethodField()
 
     class Meta:
         model = ShoppingList
-        fields = ('name', 'image', 'cooking_time', 'count')
-
-    def get_count(self, obj):
-        return obj.recipe.all().count()
+        fields = ('name', 'image', 'cooking_time')
 
 
 class FavoritesSerializer(serializers.ModelSerializer):
@@ -94,6 +76,7 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
+    """Сериалищатор для просмотра рецептов."""
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -132,6 +115,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания рецептов."""
     author = CustomUserCreateSerializer(read_only=True)
     image = Base64ImageField(use_url=True)
     ingredients = IngredientInRecipeSerializer(many=True)
@@ -148,6 +132,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
             )
 
     def add_ingredient(self, recipe, ingredient_id, amount):
+        """Метод добавления ингредиента."""
         ingredient = get_object_or_404(Ingredient, id=ingredient_id)
         try:
             recipe_ingredient = RecipeIngredient.objects.get(
@@ -171,6 +156,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
         recipe.tags.set(tags)
 
     def create(self, validated_data):
+        """Создание рецепта."""
         author = self.context.get('request').user
         tags = validated_data.pop('tags')
         ingredients_data = validated_data.pop('ingredients')
@@ -189,6 +175,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
+        """Обновление рецепта."""
         instance.tags.clear()
         instance.tags.set(validated_data.pop('tags'))
         RecipeIngredient.objects.filter(recipe=instance).delete()
@@ -197,6 +184,18 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
             ingredient_id = ingredient_data['id']
             amount = ingredient_data['amount']
             self.add_ingredient(instance, ingredient_id, amount)
+
+        image_data = validated_data.get('image')
+        if image_data:
+            if instance.image:
+                instance.image.delete()
+            instance.image = image_data
+
+        if 'text' in validated_data:
+            instance.text = validated_data['text']
+
+        if 'name' in validated_data:
+            instance.name = validated_data['name']
 
         instance.save()
         return instance
@@ -207,6 +206,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
 
 
 class PublicRecipeSerializer(serializers.ModelSerializer):
+    """Просмотр рецепта для неавторизованного пользователя."""
     tags = TagSerializer(many=True, read_only=True)
     author = CustomUserCreateSerializer(read_only=True)
 
@@ -224,6 +224,7 @@ class PublicRecipeSerializer(serializers.ModelSerializer):
 
 
 class MiniRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для краткого представления."""
     image = Base64ImageField()
 
     class Meta:

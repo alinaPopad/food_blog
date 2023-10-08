@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 
 
 class CustomUser(AbstractUser):
+    """Модель пользователя."""
     username = models.CharField(blank=True, max_length=150, )
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150, blank=True)

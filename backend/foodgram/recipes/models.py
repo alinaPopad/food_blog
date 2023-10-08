@@ -125,7 +125,7 @@ class ShoppingList(models.Model):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Список покупок'
         constraints = [
-            models.UniqueConstraint(  # проверяю на уникальность пару пользователь-рецепт
+            models.UniqueConstraint(
                 fields=['user', 'recipe'],
                 name='unique_shopping_list'
             )
@@ -154,7 +154,7 @@ class Favorites(models.Model):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
         constraints = [
-            models.UniqueConstraint(  # проверяю на уникальность пару пользователь-рецепт
+            models.UniqueConstraint(
                 fields=['user', 'recipe'],
                 name='unique_favorite'
             )

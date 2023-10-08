@@ -1,22 +1,16 @@
 import os
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, status, filters
-from rest_framework import generics, permissions
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
-from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from django.db.models import Prefetch
-from django.contrib.auth.models import AnonymousUser
-from django.shortcuts import redirect
-from django.urls import reverse
 
 from users.models import CustomUser
 from .models import Recipe, Tags, Ingredient, ShoppingList
@@ -24,30 +18,23 @@ from .models import Favorites, RecipeIngredient
 from .serializers import (RecipeSerializer, TagSerializer,
                           IngredientSerializer,
                           CreateUpdateRecipeSerializer,
-                          IngredientInRecipeSerializer,
                           PublicRecipeSerializer
                           )
-#from .serializers import FavoritesSerializer
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsAuthorOrReadOnly, IsAdminOrReadOnly
 from .filters import RecipeFilter, IngredientFilter
-import logging
 from .pagination import DefaultPagination
-from reportlab.lib import fonts
-
-logger = logging.getLogger(__name__)
-
-POST_FILTER = 6
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
     """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthorOrReadOnly,)
+    permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
     pagination_class = DefaultPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
+        """Выбор сериализатора в зависимости от метода."""
         if self.action == 'create' or self.action == 'partial_update':
             return CreateUpdateRecipeSerializer
         elif self.action in ('list', 'retrieve'):
@@ -56,6 +43,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return RecipeSerializer
 
     def get_queryset(self):
+        """Получение queryset."""
         queryset = Recipe.objects.all()
         for backend in list(self.filter_backends):
             queryset = backend().filter_queryset(self.request, queryset, view=self)
@@ -66,6 +54,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     def list(self, request, *args, **kwargs):
+        """Метод для просмотра рецептов на главной странице."""
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
 
@@ -77,9 +66,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
-        if request.method == 'POST':
-            data = request.data
-            print("Data from frontend:", data)
         if (
             not request.user.is_authenticated or
             not isinstance(request.user, CustomUser)
@@ -230,13 +216,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
             ShoppingList.objects.filter(user=user).
             values_list('recipe', flat=True)
         )
-        pdfmetrics.registerFontFamily("Helvetica", normal="Helvetica")
-        #font_path = os.path.join(
-        #    os.path.dirname(os.path.abspath(__file__)),
-        #   'dejavu-sans-ttf-2.37', 'dejavu-sans-ttf-2.37', 'ttf', 'DejaVuSans.ttf'
-        #)
-
-        #pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+        font_path = os.path.join(settings.BASE_DIR, 'recipes/fonts/DejaVuSans.ttf')
+        pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
             'attachment;'
@@ -245,19 +226,46 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         pdf = canvas.Canvas(response, pagesize=letter)
         pdf.setTitle('Shopping Cart')
+        pdf.setFont("DejaVuSans", 16)
+        pdf.drawString(100, 750, "Ваш список покупок.")
+        ingredient_list = []
 
         for recipe_id in recipes_in_shopping_cart:
             recipe = Recipe.objects.get(pk=recipe_id)
-            pdf.setFont("Helvetica", 12)
-            pdf.drawString(100, 700, recipe.name_recipe)
+            pdf.setFont("DejaVuSans", 12)
 
             ingredients = RecipeIngredient.objects.filter(recipe=recipe)
             for ingredient in ingredients:
-                pdf.drawString(150, 680, f"{ingredient.ingredient.title}:"
-                               f" {ingredient.quantity}"
-                               f" {ingredient.ingredient.unit}"
-                               )
-            pdf.showPage()
+                ingredient_name = ingredient.ingredient.name
+                ingredient_amount = ingredient.amount
+                measurement_unit = ingredient.ingredient.measurement_unit
+
+                existing_ingredient = next((
+                    i for i in ingredient_list if i['name'] == ingredient_name
+                ),
+                    None
+                )
+
+                if existing_ingredient:
+                    existing_ingredient['amount'] += ingredient_amount
+                else:
+                    ingredient_list.append({
+                        'name': ingredient_name,
+                        'amount': ingredient_amount,
+                        'measurement_unit': measurement_unit,
+                    })
+
+        pdf.setFont("DejaVuSans", 12)
+        y = 700
+        for ingredient in ingredient_list:
+            ingredient_name = ingredient['name']
+            ingredient_amount = ingredient['amount']
+            measurement_unit = ingredient['measurement_unit']
+            ingredient_string = (
+                f"{ingredient_name}: {ingredient_amount} {measurement_unit}"
+            )
+            pdf.drawString(100, y, ingredient_string)
+            y -= 20
 
         pdf.save()
         return response
@@ -267,7 +275,7 @@ class TagsViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet для работы с тегами."""
     queryset = Tags.objects.all()
     serializer_class = TagSerializer
-    pagination_class = None
+    permission_classes = (IsAdminOrReadOnly,)
 
     def list(self, request):
         """Получение списка тегов."""
@@ -289,4 +297,4 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
-    pagination_class = None
+    permission_classes = (IsAdminOrReadOnly,)

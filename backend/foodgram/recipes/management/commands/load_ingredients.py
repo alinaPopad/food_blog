@@ -14,7 +14,10 @@ class Command(BaseCommand):
             next(csv_data)
             for row in csv_data:
                 name, measurement_unit = row
-                Ingredient.objects.create(name=name, measurement_unit=measurement_unit)
+                Ingredient.objects.create(
+                    name=name,
+                    measurement_unit=measurement_unit
+                )
 
         # Load data from JSON
         with open('data/ingredients.json', 'r', encoding='utf-8') as jsonfile:
@@ -22,7 +25,10 @@ class Command(BaseCommand):
             for item in json_data:
                 name = item['name']
                 measurement_unit = item['measurement_unit']
-                Ingredient.objects.create(name=name, measurement_unit=measurement_unit)
+                Ingredient.objects.create(
+                    name=name,
+                    measurement_unit=measurement_unit
+                )
 
         self.stdout.write(
             self.style.SUCCESS('Successfully loaded ingredients'))
