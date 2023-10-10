@@ -11,7 +11,7 @@ class RecipeFilter(filters.FilterSet):
     """Фильтр для рецептов.(теги/избранное/список покупок)"""
     is_favorited = filters.BooleanFilter(
         method='filter_is_favorited')
-    by_shopping_cart = filters.BooleanFilter(
+    is_in_shopping_cart = filters.BooleanFilter(
         method='filter_by_shopping_cart')
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tags.objects.all(),
@@ -31,7 +31,7 @@ class RecipeFilter(filters.FilterSet):
     def filter_by_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if value and not user.is_anonymous:
-            return queryset.filter(is_in_shopping_cart__user=user)
+            return queryset.filter(is_in_shopping_cart__user=user) 
         return queryset
 
 
