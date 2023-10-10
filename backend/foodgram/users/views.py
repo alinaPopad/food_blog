@@ -32,7 +32,7 @@ class CustomUserViewSet(DjoserUserViewSet):
         return Response(
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
-            )
+        )
 
     def profile(self, request, pk=None):
         """Просмотр профиля по id."""
@@ -97,9 +97,9 @@ class CustomUserViewSet(DjoserUserViewSet):
             request,
             username=email,
             password=password
-            )
+        )
         if user:
-            token, created  = Token.objects.get_or_create(user=user)
+            token, created = Token.objects.get_or_create(user=user)
             login(request, user)
             return Response({'auth_token': token.key})
 
@@ -158,7 +158,10 @@ class CustomUserViewSet(DjoserUserViewSet):
                     'id': user_to_modify_subscription.id,
                     'is_subscribed': False
                 }
-                return Response(serializer_data, status=status.HTTP_204_NO_CONTENT)
+                return Response(
+                    serializer_data,
+                    status=status.HTTP_204_NO_CONTENT
+                )
             except Follow.DoesNotExist:
                 return Response(
                     {'detail': 'Подписка не найдена.'},

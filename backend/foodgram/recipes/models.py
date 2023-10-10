@@ -1,8 +1,8 @@
 from django.db import models
-from django.core.validators import MinValueValidator
-from users.models import CustomUser
 from django.db.models.constraints import UniqueConstraint
 from django.core.validators import MinLengthValidator
+from django.core.validators import MinValueValidator
+from users.models import CustomUser
 
 
 class Tags(models.Model):

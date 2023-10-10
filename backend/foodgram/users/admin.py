@@ -1,4 +1,3 @@
-from django.db.models import Count
 from django.contrib import admin
 from recipes.models import Recipe, Ingredient, Tags, RecipeIngredient
 from recipes.models import Favorites, ShoppingList
@@ -6,7 +5,7 @@ from users.models import CustomUser, Follow
 
 
 class AdminUser(admin.ModelAdmin):
-    list_display = ('username', 'email','first_name', 'last_name')
+    list_display = ('username', 'email', 'first_name', 'last_name')
     list_filter = ('username', 'email')
 
 

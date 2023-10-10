@@ -1,17 +1,15 @@
-from rest_framework import serializers
-from rest_framework.relations import SlugRelatedField
-from rest_framework.fields import IntegerField
-from django.core.files.base import ContentFile
 import base64
 import uuid
-import six
+
+from rest_framework import serializers
+from rest_framework.fields import IntegerField
+from rest_framework.relations import SlugRelatedField
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 
 from users.serializers import CustomUserCreateSerializer
-from .models import (
-    Recipe, Tags, Ingredient,
-    ShoppingList, Favorites, RecipeIngredient
-)
+from .models import ShoppingList, Favorites, RecipeIngredient
+from .models import Recipe, Tags, Ingredient
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -129,7 +127,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'author', 'name', 'image',
             'text', 'tags', 'cooking_time', 'ingredients',
-            )
+        )
 
     def add_ingredient(self, recipe, ingredient_id, amount):
         """Метод добавления ингредиента."""

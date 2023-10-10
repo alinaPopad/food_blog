@@ -1,28 +1,26 @@
 import os
+
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 
 from users.models import CustomUser
+from .filters import RecipeFilter, IngredientFilter
 from .models import Recipe, Tags, Ingredient, ShoppingList
 from .models import Favorites, RecipeIngredient
-from .serializers import (RecipeSerializer, TagSerializer,
-                          IngredientSerializer,
-                          CreateUpdateRecipeSerializer,
-                          PublicRecipeSerializer
-                          )
-from .permissions import IsAuthorOrReadOnly, IsAdminOrReadOnly
-from .filters import RecipeFilter, IngredientFilter
 from .pagination import DefaultPagination
+from .permissions import IsAuthorOrReadOnly, IsAdminOrReadOnly
+from .serializers import RecipeSerializer, TagSerializer
+from .serializers import IngredientSerializer, PublicRecipeSerializer
+from .serializers import CreateUpdateRecipeSerializer
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -46,7 +44,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Получение queryset."""
         queryset = Recipe.objects.all()
         for backend in list(self.filter_backends):
-            queryset = backend().filter_queryset(self.request, queryset, view=self)
+            queryset = backend().filter_queryset(
+                self.request, queryset,
+                view=self
+            )
         print(self.request.query_params)
         return queryset
 
@@ -67,8 +68,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
         if (
-            not request.user.is_authenticated or
-            not isinstance(request.user, CustomUser)
+            not request.user.is_authenticated
+            or not isinstance(request.user, CustomUser)
         ):
             return Response(
                 {'detail': 'Пользователь не авторизован.'},
@@ -84,7 +85,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 {'detail': 'Recipe created successfully',
                  'recipe_id': recipe_id},
                 status=status.HTTP_201_CREATED
-                )
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, *args, **kwargs):
@@ -191,7 +192,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response(
                 {'detail': 'Рецепт добавлен в список покупок.'},
                 status=status.HTTP_201_CREATED
-            ) 
+            )
 
         if request.method == 'DELETE':
             # Удаление из списка покупок
@@ -216,13 +217,16 @@ class RecipesViewSet(viewsets.ModelViewSet):
             ShoppingList.objects.filter(user=user).
             values_list('recipe', flat=True)
         )
-        font_path = os.path.join(settings.BASE_DIR, 'recipes/fonts/DejaVuSans.ttf')
+        font_path = os.path.join(
+            settings.BASE_DIR,
+            'recipes/fonts/DejaVuSans.ttf'
+        )
         pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
             'attachment;'
             'filename="shopping_cart.pdf"'
-            )
+        )
 
         pdf = canvas.Canvas(response, pagesize=letter)
         pdf.setTitle('Shopping Cart')

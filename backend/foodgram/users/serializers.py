@@ -1,8 +1,7 @@
-from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
+from djoser.serializers import UserCreateSerializer
 import logging
 from .models import Follow, CustomUser
-
 
 logger = logging.getLogger(__name__)
 
