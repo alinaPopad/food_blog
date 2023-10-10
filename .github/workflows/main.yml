@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
 jobs:
   checkout-and-print-tree:
     runs-on: ubuntu-latest
