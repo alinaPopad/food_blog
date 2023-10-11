@@ -1,8 +1,7 @@
-from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django_filters import rest_framework as filters
 
-from recipes.models import Recipe, Ingredient, Tags
+from recipes.models import Recipe, Tags
 
 
 User = get_user_model()
@@ -35,14 +34,3 @@ class RecipeFilter(filters.FilterSet):
             return queryset.filter(is_in_shopping_cart__user=user)
         return queryset
 
-
-class IngredientFilter(filters.FilterSet):
-    """Фильтрация для выбора ингредиента."""
-    title = filters.CharFilter(lookup_expr='filter_name')
-
-    def filter_name(self, queryset, name, value):
-        return queryset.filter(Q(name__istartswith=value[:3]))
-
-    class Meta:
-        model = Ingredient
-        fields = ['name']
