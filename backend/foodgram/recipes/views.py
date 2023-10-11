@@ -1,6 +1,5 @@
 import os
 
-from rest_framework import filters
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -14,7 +13,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from users.models import CustomUser
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .models import Recipe, Tags, Ingredient, ShoppingList
 from .models import Favorites, RecipeIngredient
 from .pagination import DefaultPagination
@@ -301,5 +300,5 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [IngredientFilter]
     search_fields = ['^name']
