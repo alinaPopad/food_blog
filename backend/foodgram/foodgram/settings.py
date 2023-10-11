@@ -25,7 +25,7 @@ SECRET_KEY = '8i-e1s1qsx9y-wxbpt8$&0%czh(&7q2urjod7b&4qnd4k$5z8i'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['taski2023.ddns.net', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['taski2023.ddns.net', 'localhost', '127.0.0.1', '84.201.154.246']
 
 
 # Application definition
