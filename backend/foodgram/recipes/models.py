@@ -48,7 +48,6 @@ class Recipe(models.Model):
     name = models.TextField(verbose_name='Название рецепта',)
     image = models.ImageField(
         'Картинка',
-        upload_to='app/media/',
         blank=True,
         null=True,
     )
