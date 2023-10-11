@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django_filters import rest_framework as filters
 
@@ -37,7 +38,10 @@ class RecipeFilter(filters.FilterSet):
 
 class IngredientFilter(filters.FilterSet):
     """Фильтрация для выбора ингредиента."""
-    title = filters.CharFilter(lookup_expr='istartswith')
+    title = filters.CharFilter(lookup_expr='filter_name')
+
+    def filter_name(self, queryset, name, value):
+        return queryset.filter(Q(name__istartswith=value[:3]))
 
     class Meta:
         model = Ingredient
