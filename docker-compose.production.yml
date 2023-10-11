@@ -31,11 +31,11 @@ services:
 
   gateway:
     image: alinapopad/foodgram_gateway
-    volumes:
-      - media:/app/media/
-      - static:/static/
     depends_on:
       - backend
     ports:
       - 8000:80 
     restart: always
+    volumes:
+      - media:/app/media/
+      - static:/static/
