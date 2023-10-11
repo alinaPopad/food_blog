@@ -26,7 +26,7 @@ SECRET_KEY = '8i-e1s1qsx9y-wxbpt8$&0%czh(&7q2urjod7b&4qnd4k$5z8i'
 DEBUG = True
 
 ALLOWED_HOSTS = ['taski2023.ddns.net', 'localhost', '127.0.0.1', '84.201.154.246']
-
+CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net']
 
 # Application definition
 
