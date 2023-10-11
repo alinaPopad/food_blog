@@ -11,6 +11,7 @@ services:
     env_file: .env
     volumes:
       - foodgram_data:/var/lib/postgresql/data
+    restart: always
 
   backend:
     image: alinapopad/foodgram_backend
