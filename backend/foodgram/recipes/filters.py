@@ -1,4 +1,4 @@
-from rest_framework import filters
+from rest_framework.filters import SearchFilter
 from django.contrib.auth import get_user_model
 from django_filters import rest_framework as filters
 
@@ -36,5 +36,5 @@ class RecipeFilter(filters.FilterSet):
         return queryset
 
 
-class IngredientFilter(filters.SearchFilter):
+class IngredientFilter(SearchFilter):
     search_param = 'name'

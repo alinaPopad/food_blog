@@ -300,5 +300,5 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = [IngredientFilter]
-    search_fields = ['^name']
+    filter_backends = [IngredientFilter,]
+    search_fields = ['^name',]
