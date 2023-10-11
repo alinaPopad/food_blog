@@ -14,7 +14,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from users.models import CustomUser
-from .filters import RecipeFilter, IngredientFilter
+from .filters import RecipeFilter
 from .models import Recipe, Tags, Ingredient, ShoppingList
 from .models import Favorites, RecipeIngredient
 from .pagination import DefaultPagination
