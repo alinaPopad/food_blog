@@ -1,5 +1,6 @@
 import os
 
+from rest_framework import filters
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -299,6 +300,7 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet для работы с ингредиентыми."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (DjangoFilterBackend,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
     filterset_class = IngredientFilter
     permission_classes = (IsAdminOrReadOnly,)
