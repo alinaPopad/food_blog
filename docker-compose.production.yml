@@ -38,3 +38,4 @@ services:
       - backend
     ports:
       - 8000:80 
+    restart: always
