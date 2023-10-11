@@ -6,7 +6,7 @@ cryptography==41.0.3
 defusedxml==0.7.1
 Django==4.2.5
 django-cors-headers==3.13.0
-django-filter==21.1
+django-filter==23.2
 django-templated-mail==1.1.1
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
