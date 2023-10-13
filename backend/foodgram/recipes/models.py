@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.constraints import UniqueConstraint
 from django.core.validators import MinLengthValidator
 from django.core.validators import MinValueValidator
+
 from users.models import CustomUser
 
 
@@ -19,6 +20,11 @@ class Tags(models.Model):
     )
     color = models.TextField(verbose_name='Цветовой код',)
 
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Тег"
+        verbose_name_plural = "Теги"
+
     def __str__(self) -> str:
         return self.name
 
@@ -28,7 +34,8 @@ class Ingredient(models.Model):
     name = models.CharField(
         max_length=100,
         verbose_name='Название ингредиента',
-        validators=[MinLengthValidator(3)]
+        validators=[MinLengthValidator(3)],
+        db_index=True,
     )
     measurement_unit = models.CharField(
         max_length=100,
@@ -62,8 +69,8 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Теги'
     )
-    cooking_time = models.IntegerField(
-        null=True,
+    cooking_time = models.PositiveSmallIntegerField(
+        null=False,
         default=0,
         verbose_name='Время приготовления',
     )

@@ -29,8 +29,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', default='*')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = ['taski2023.ddns.net', 'localhost', '84.201.154.246', '127.0.0.1']
-# CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net']
+ALLOWED_HOSTS = [
+    'taski2023.ddns.net',
+    'localhost',
+    '84.201.154.246',
+    '127.0.0.1'
+]
+CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net']
 
 # Application definition
 
@@ -90,7 +95,7 @@ DATABASES = {
         'NAME': os.getenv('POSTGRES_DB', 'django'),
         'USER': os.getenv('POSTGRES_USER', 'django'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', ''),
+        'HOST': os.getenv('DB_HOST', 'dbf'),
         'PORT': os.getenv('DB_PORT', 5432)
     }
 }
