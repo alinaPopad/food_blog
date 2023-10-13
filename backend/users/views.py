@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 
 from .models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
-from recipes.pagination import DefaultPagination
+from api.pagination import DefaultPagination
 
 
 class CustomUserViewSet(DjoserUserViewSet):

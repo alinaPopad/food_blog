@@ -4,8 +4,6 @@ from rest_framework.permissions import SAFE_METHODS
 from .models import Recipe
 
 
-# class IsAuthorOrReadOnly(permissions.BasePermission):
-
 class IsSafeMethod(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.method in permissions.SAFE_METHODS
