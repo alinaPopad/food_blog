@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import environ
 
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,10 +27,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ.get('SECRET_KEY', default='*')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.environ.get('DEBUG', default=False) == 'True'
-DEBUG = True
+DEBUG = env.bool('DEBUG', default=False)
+
 ALLOWED_HOSTS = ['taski2023.ddns.net', 'localhost', '84.201.154.246', '127.0.0.1']
-CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net']
+# CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net']
 
 # Application definition
 
