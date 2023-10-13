@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
@@ -33,7 +34,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Выбор сериализатора в зависимости от метода."""
-        if self.action == 'create' or self.action == 'partial_update':
+        if self.action in ('create', 'partial_update'):
             return CreateUpdateRecipeSerializer
         elif self.action in ('list', 'retrieve'):
             if not self.request.user.is_authenticated:
@@ -43,27 +44,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Получение queryset."""
         queryset = Recipe.objects.all()
-        for backend in list(self.filter_backends):
-            queryset = backend().filter_queryset(
-                self.request, queryset,
-                view=self
-            )
-        print(self.request.query_params)
         return queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def list(self, request, *args, **kwargs):
-        """Метод для просмотра рецептов на главной странице."""
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({'recipes': serializer.data})
 
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
@@ -88,12 +72,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def retrieve(self, request, *args, **kwargs):
-        """Получение рецепта по id."""
-        recipe = self.get_object()
-        serializer = self.get_serializer(recipe)
-        return Response(serializer.data)
-
     def put(self, request, pk=None):
         """Изменение рецепта."""
         if not request.user.is_authenticated:
@@ -106,26 +84,30 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Недостаточно прав.'},
                             status=status.HTTP_403_FORBIDDEN
                             )
-        print("Request data:", request.data)
         serializer = CreateUpdateRecipeSerializer(recipe, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def check_authorization(request, author):
+        if not request.user.is_authenticated:
+            raise PermissionDenied("Пользователь не авторизован.")
+        if request.user != author:
+            raise PermissionDenied("Недостаточно прав.")
+
     def destroy(self, request, pk=None):
         """Удаление рецепта."""
         recipe = get_object_or_404(Recipe, id=pk)
-        if not request.user.is_authenticated:
+
+        try:
+            check_authorization(request, recipe.author)
+        except PermissionDenied as e:
             return Response(
-                {'detail': 'Пользователь не авторизован.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        if request.user != recipe.author:
-            return Response(
-                {'detail': 'Недостаточно прав.'},
+                {'detail': str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
+
         recipe.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
