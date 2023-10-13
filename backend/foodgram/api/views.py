@@ -165,16 +165,17 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         if request.method == 'POST':
             # Добавление в список покупок
-            if ShoppingList.objects.filter(user=user, recipe=recipe).exists():
+            if not recipe.shopping_lists.filter(user=user).exists():
+                ShoppingList.objects.create(user=user, recipe=recipe)
+                return Response(
+                    {'detail': 'Рецепт добавлен в список покупок.'},
+                    status=status.HTTP_201_CREATED
+                )
+            else:
                 return Response(
                     {'detail': 'Рецепт уже есть в списке покупок.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            ShoppingList.objects.create(user=user, recipe=recipe)
-            return Response(
-                {'detail': 'Рецепт добавлен в список покупок.'},
-                status=status.HTTP_201_CREATED
-            )
 
         if request.method == 'DELETE':
             # Удаление из списка покупок
