@@ -101,7 +101,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, id=pk)
 
         try:
-            check_authorization(request, recipe.author)
+            self.check_authorization(request, recipe.author)
         except PermissionDenied as e:
             return Response(
                 {'detail': str(e)},
