@@ -75,7 +75,7 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериалищатор для просмотра рецептов."""
-    ingredients = serializers.SerializerMethodField()
+    ingredients = IngredientSerializer(many=True, read_only=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
     author = CustomUserCreateSerializer(read_only=True)
@@ -97,11 +97,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_ingredients(self, obj):
-        ingredients_data = obj.ingredients.through.objects.filter(recipe=obj)
-        return [{'id': item.ingredient.id,
-                 'name': item.ingredient.name,
-                 'measurement_unit': item.ingredient.measurement_unit,
-                 'amount': item.amount} for item in ingredients_data]
+        return RecipeSerializer(obj).data['ingredients']
 
     def get_is_favorited(self, obj):
         user = self.context['request'].user
@@ -159,7 +155,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         ingredients_data = validated_data.pop('ingredients')
 
-        recipe = Recipe.objects.create(**validated_data)
+        recipe = super().create(validated_data)
         recipe.author = author
         recipe.save()
 
