@@ -8,8 +8,8 @@ from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 
 from users.serializers import CustomUserCreateSerializer
-from .models import ShoppingList, Favorites, RecipeIngredient
-from .models import Recipe, Tags, Ingredient
+from recipes.models import ShoppingList, Favorites, RecipeIngredient
+from recipes.models import Recipe, Tags, Ingredient
 
 
 class TagSerializer(serializers.ModelSerializer):

@@ -13,11 +13,11 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from users.models import CustomUser
-from .filters import RecipeFilter, IngredientFilter
-from .models import Recipe, Tags, Ingredient, ShoppingList
-from .models import Favorites, RecipeIngredient
+from recipes.filters import RecipeFilter, IngredientFilter
+from recipes.models import Recipe, Tags, Ingredient, ShoppingList
+from recipes.models import Favorites, RecipeIngredient
+from recipes.permissions import IsRecipeAuthorOrSafe, IsAdminOrReadOnly
 from .pagination import DefaultPagination
-from .permissions import IsAuthorOrReadOnly, IsAdminOrReadOnly
 from .serializers import RecipeSerializer, TagSerializer
 from .serializers import IngredientSerializer, PublicRecipeSerializer
 from .serializers import CreateUpdateRecipeSerializer
@@ -26,7 +26,7 @@ from .serializers import CreateUpdateRecipeSerializer
 class RecipesViewSet(viewsets.ModelViewSet):
     """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
+    permission_classes = (IsRecipeAuthorOrSafe | IsAdminOrReadOnly,)
     pagination_class = DefaultPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter

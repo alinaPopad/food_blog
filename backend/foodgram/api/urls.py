@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.urls import include, re_path
 from rest_framework.routers import DefaultRouter
 from users.views import CustomUserViewSet
-from recipes.views import RecipesViewSet, TagsViewSet, IngredientsViewSet
+from .views import RecipesViewSet, TagsViewSet, IngredientsViewSet
 
 router = DefaultRouter()
 router.register(r'users', CustomUserViewSet, basename='users')  # пользователи

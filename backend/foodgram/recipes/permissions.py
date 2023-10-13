@@ -4,21 +4,28 @@ from rest_framework.permissions import SAFE_METHODS
 from .models import Recipe
 
 
-class IsAuthorOrReadOnly(permissions.BasePermission):
-    """Permission для доступа к рецептам."""
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_authenticated
+# class IsAuthorOrReadOnly(permissions.BasePermission):
 
+class IsSafeMethod(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.method in permissions.SAFE_METHODS
+
+
+class IsAuthor(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        if isinstance(obj, Recipe) and request.method == 'POST':
-            return True
-        if isinstance(obj, Recipe) and request.method == 'DELETE':
-            return True
         return obj.author == request.user
+
+
+class IsRecipeAuthor(IsAuthor):
+    def has_object_permission(self, request, view, obj):
+        if isinstance(obj, Recipe):
+            return super().has_object_permission(request, view, obj)
+        return False
+
+
+class IsRecipeAuthorOrSafe(IsRecipeAuthor, IsSafeMethod):
+    """Permission объединяющий общую логику."""
+    pass
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
