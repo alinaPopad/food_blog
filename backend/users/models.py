@@ -21,6 +21,11 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
 
+    class Meta:
+        db_table = 'custom_user'
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
 
 class Follow(models.Model):
     """Модель подписок"""
@@ -59,5 +64,5 @@ class Follow(models.Model):
             raise ValidationError('Подписка на этого автора уже существует.')
         return
 
-    def __Str__(self):
+    def __str__(self):
         return f'Пользователь {self.user} подписан на автора {self.author}'

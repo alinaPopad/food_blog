@@ -6,10 +6,12 @@ from rest_framework.fields import IntegerField
 from rest_framework.relations import SlugRelatedField
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
+from djoser.serializers import UserCreateSerializer
 
 from users.serializers import CustomUserCreateSerializer
 from recipes.models import ShoppingList, Favorites, RecipeIngredient
 from recipes.models import Recipe, Tags, Ingredient
+from users.models import Follow, CustomUser
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -223,3 +225,68 @@ class MiniRecipeSerializer(serializers.ModelSerializer):
             'image',
             'cooking_time'
         )
+
+
+class CustomUserCreateSerializer(UserCreateSerializer):
+    """Сериализатор для CustomUser."""
+    password = serializers.CharField(write_only=True)
+
+    class Meta(UserCreateSerializer.Meta):
+        model = CustomUser
+        fields = (
+            'id', 'email',
+            'username', 'first_name',
+            'last_name', 'password'
+        )
+
+    def create(self, validated_data):
+        user = super().create(validated_data)
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+
+    def to_representation(self, instance):
+        representation = {
+            "email": instance.email,
+            "id": instance.id,
+            "username": instance.username,
+            "first_name": instance.first_name,
+            "last_name": instance.last_name,
+        }
+        return representation
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписки на авторов."""
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField(
+        read_only=True,
+        method_name='get_recipes')
+    recipes_count = serializers.SerializerMethodField(
+        read_only=True
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'recipes', 'recipes_count')
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return obj.followers.filter(user=user).exists()
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes = obj.recipes.all()
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
+        return MiniRecipeSerializer(recipes, many=True).data
+
+    @staticmethod
+    def get_recipes_count(obj):
+        """Метод для получения количества рецептов"""
+
+        return obj.recipes.count()
