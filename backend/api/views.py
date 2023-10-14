@@ -14,10 +14,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from users.models import CustomUser
-from recipes.filters import RecipeFilter, IngredientFilter
+from .filters import RecipeFilter, IngredientFilter
 from recipes.models import Recipe, Tags, Ingredient, ShoppingList
 from recipes.models import Favorites, RecipeIngredient
-from recipes.permissions import IsRecipeAuthorOrSafe, IsAdminOrReadOnly
+from .permissions import IsRecipeAuthorOrSafe, IsAdminOrReadOnly
 from .pagination import DefaultPagination
 from .serializers import RecipeSerializer, TagSerializer
 from .serializers import IngredientSerializer, PublicRecipeSerializer

@@ -97,7 +97,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_ingredients(self, obj):
-        return RecipeSerializer(obj).data['ingredients']
+        return IngredientSerializer(obj.ingredients.all(), many=True).data
 
     def get_is_favorited(self, obj):
         user = self.context['request'].user
@@ -185,13 +185,7 @@ class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
                 instance.image.delete()
             instance.image = image_data
 
-        if 'text' in validated_data:
-            instance.text = validated_data['text']
-
-        if 'name' in validated_data:
-            instance.name = validated_data['name']
-
-        instance.save()
+        super().update(instance, validated_data)
         return instance
 
     def to_representation(self, instance):
