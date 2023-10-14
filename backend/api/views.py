@@ -29,7 +29,6 @@ from .serializers import IngredientSerializer, PublicRecipeSerializer
 from .serializers import CreateUpdateRecipeSerializer
 from users.models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
-from .pagination import DefaultPagination
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
