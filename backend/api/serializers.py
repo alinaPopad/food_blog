@@ -11,7 +11,7 @@ from djoser.serializers import UserCreateSerializer
 from users.serializers import CustomUserCreateSerializer
 from recipes.models import ShoppingList, Favorites, RecipeIngredient
 from recipes.models import Recipe, Tags, Ingredient
-from users.models import Follow, CustomUser
+from users.models import CustomUser
 
 
 class TagSerializer(serializers.ModelSerializer):
