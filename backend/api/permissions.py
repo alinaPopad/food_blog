@@ -2,6 +2,7 @@ from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS
 
 from recipes.models import Recipe
+from users.models import CustomUser
 
 
 class IsSafeMethod(permissions.BasePermission):
@@ -31,3 +32,18 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         return (request.method in SAFE_METHODS
                 or request.user.is_staff)
+
+
+class IsAuthenticatedCustomUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and isinstance(request.user, CustomUser)
+        )
+
+
+class IsAuthenticatedForList(IsAuthenticatedCustomUser):
+    def has_permission(self, request, view):
+        if view.action in ('list', 'retrieve'):
+            return True
+        return super().has_permission(request, view)
