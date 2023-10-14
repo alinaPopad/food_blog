@@ -11,7 +11,10 @@ class CustomUser(AbstractUser):
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     is_subscribed = models.BooleanField(default=False)
-
+    (AbstractUser._meta.get_field('groups').
+     remote_field.related_name) = 'custom_user_set'
+    (AbstractUser._meta.get_field('user_permissions')
+     .remote_field.related_name) = 'custom_user_set'
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
