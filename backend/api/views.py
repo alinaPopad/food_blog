@@ -56,55 +56,26 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
         serializer = self.get_serializer(data=request.data)
-
-        try:
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            recipe_id = serializer.instance.id
-            return Response(
-                {'detail': 'Recipe created successfully',
-                 'recipe_id': recipe_id},
-                status=status.HTTP_201_CREATED
-            )
-        except ValidationError as e:
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        recipe_id = serializer.instance.id
+        return Response(
+            {'detail': 'Recipe created successfully',
+             'recipe_id': recipe_id},
+            status=status.HTTP_201_CREATED
+        )
 
     def put(self, request, pk=None):
         """Изменение рецепта."""
         recipe = self.get_object_or_404(Recipe, id=pk)
-        if request.user != recipe.author:
-            return Response(
-                {'detail': 'Недостаточно прав.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
         serializer = CreateUpdateRecipeSerializer(recipe, data=request.data)
-
-        try:
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        except ValidationError as e:
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-
-    def check_authorization(request, author):
-        if not request.user.is_authenticated:
-            raise PermissionDenied("Пользователь не авторизован.")
-        if request.user != author:
-            raise PermissionDenied("Недостаточно прав.")
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, pk=None):
         """Удаление рецепта."""
         recipe = get_object_or_404(Recipe, id=pk)
-
-        try:
-            self.check_authorization(request, recipe.author)
-        except PermissionDenied as e:
-            return Response(
-                {'detail': str(e)},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
         recipe.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
