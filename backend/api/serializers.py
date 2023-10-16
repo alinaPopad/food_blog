@@ -268,7 +268,7 @@ class FollowSerializer(serializers.ModelSerializer):
         method_name='get_recipes')
     recipes_count = serializers.SerializerMethodField(
         read_only=True
-    ) # comment
+    )  # comment
 
     class Meta:
         model = Follow
