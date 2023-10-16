@@ -7,10 +7,10 @@ from .views import CustomUserViewSet
 from .views import RecipesViewSet, TagsViewSet, IngredientsViewSet
 
 router = DefaultRouter()
-router.register(r'users', CustomUserViewSet, basename='users')  # пользователи
-router.register(r'recipes', RecipesViewSet)  # рецепты
-router.register(r'tags', TagsViewSet)  # теги
-router.register(r'ingredients', IngredientsViewSet)  # ингредиенты
+router.register(r'users', CustomUserViewSet, basename='users')
+router.register(r'recipes', RecipesViewSet)
+router.register(r'tags', TagsViewSet)
+router.register(r'ingredients', IngredientsViewSet)
 
 urlpatterns = [
     re_path('', include(router.urls)),
