@@ -398,12 +398,17 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     @action(detail=False, methods=['GET'], url_path='subscriptions')
     def list_subscriptions(self, request):
-        """Просмотр списка подписок."""
-        queryset = CustomUser.objects.filter(follower__user=self.request.user)
+        user = request.user
+        queryset = user.follower.all()
         if queryset:
             pages = self.paginate_queryset(queryset)
-            serializer = FollowSerializer(pages, many=True,
-                                          context={'request': request})
+            serializer = FollowSerializer(
+                pages,
+                many=True,
+                context={'request': request}
+            )
             return self.get_paginated_response(serializer.data)
-        return Response('Вы ни на кого не подписаны.',
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            'Вы ни на кого не подписаны.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
