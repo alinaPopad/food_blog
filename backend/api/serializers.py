@@ -8,10 +8,38 @@ from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer
 
-from users.serializers import CustomUserCreateSerializer
 from recipes.models import ShoppingList, Favorites, RecipeIngredient
 from recipes.models import Recipe, Tags, Ingredient
-from users.models import CustomUser, Follow
+from users.models import CustomUser
+
+
+class CustomUserCreateSerializer(UserCreateSerializer):
+    """Сериализатор для CustomUser."""
+    password = serializers.CharField(write_only=True)
+
+    class Meta(UserCreateSerializer.Meta):
+        model = CustomUser
+        fields = (
+            'id', 'email',
+            'username', 'first_name',
+            'last_name', 'password'
+        )
+
+    def create(self, validated_data):
+        user = super().create(validated_data)
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+
+    def to_representation(self, instance):
+        representation = {
+            "email": instance.email,
+            "id": instance.id,
+            "username": instance.username,
+            "first_name": instance.first_name,
+            "last_name": instance.last_name,
+        }
+        return representation
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -227,35 +255,6 @@ class MiniRecipeSerializer(serializers.ModelSerializer):
         )
 
 
-class CustomUserCreateSerializer(UserCreateSerializer):
-    """Сериализатор для CustomUser."""
-    password = serializers.CharField(write_only=True)
-
-    class Meta(UserCreateSerializer.Meta):
-        model = CustomUser
-        fields = (
-            'id', 'email',
-            'username', 'first_name',
-            'last_name', 'password'
-        )
-
-    def create(self, validated_data):
-        user = super().create(validated_data)
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
-
-    def to_representation(self, instance):
-        representation = {
-            "email": instance.email,
-            "id": instance.id,
-            "username": instance.username,
-            "first_name": instance.first_name,
-            "last_name": instance.last_name,
-        }
-        return representation
-
-
 class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор для подписки на авторов."""
     is_subscribed = serializers.SerializerMethodField()
@@ -275,7 +274,7 @@ class FollowSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return Follow.objects.filter(user=user, author=obj.id).exists()
+        return obj.followers.filter(user=user).exists()
 
     def get_recipes(self, obj):
         request = self.context.get('request')
