@@ -257,6 +257,11 @@ class MiniRecipeSerializer(serializers.ModelSerializer):
 
 class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор для подписки на авторов."""
+    email = serializers.EmailField(source='user.email')
+    username = serializers.CharField(source='user.username')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField(
         read_only=True,
@@ -266,7 +271,7 @@ class FollowSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = CustomUser
+        model = Follow
         fields = ('email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'recipes', 'recipes_count')
 
@@ -287,5 +292,4 @@ class FollowSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_recipes_count(obj):
         """Метод для получения количества рецептов"""
-
         return obj.recipes.count()
