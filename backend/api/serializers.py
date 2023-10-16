@@ -290,6 +290,6 @@ class FollowSerializer(serializers.ModelSerializer):
     def get_recipes_count(obj):  # comm
         """Метод для получения количества рецептов"""
         user = obj.user
-        authors = Follow.objects.filter(user=user)
+        authors = user.follower.all()
         recipes_count = Recipe.objects.filter(author__in=authors).count()
         return recipes_count
