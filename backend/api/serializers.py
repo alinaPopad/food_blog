@@ -287,7 +287,7 @@ class FollowSerializer(serializers.ModelSerializer):
         return MiniRecipeSerializer(recipes, many=True).data
 
     @staticmethod
-    def get_recipes_count(obj):
+    def get_recipes_count(obj):  # comm
         """Метод для получения количества рецептов"""
         user = obj.user
         authors = Follow.objects.filter(user=user)
