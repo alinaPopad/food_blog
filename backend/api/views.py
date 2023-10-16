@@ -398,7 +398,7 @@ class CustomUserViewSet(DjoserUserViewSet):
 
     @action(detail=False, methods=['GET'], url_path='subscriptions')
     def list_subscriptions(self, request):
-        queryset = CustomUser.objects.filter(follow__user=self.request.user)
+        queryset = CustomUser.objects.filter(follower__user=self.request.user)
         if queryset:
             pages = self.paginate_queryset(queryset)
             serializer = FollowSerializer(
