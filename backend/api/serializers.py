@@ -10,7 +10,7 @@ from djoser.serializers import UserCreateSerializer
 
 from recipes.models import ShoppingList, Favorites, RecipeIngredient
 from recipes.models import Recipe, Tags, Ingredient
-from users.models import CustomUser
+from users.models import CustomUser, Follow
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -274,7 +274,7 @@ class FollowSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return obj.followers.filter(user=user).exists()
+        return Follow.objects.filter(user=user, author=obj.id).exists()
 
     def get_recipes(self, obj):
         request = self.context.get('request')
