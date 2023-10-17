@@ -42,8 +42,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Выбор сериализатора в зависимости от метода."""
         if self.action in ('create', 'partial_update'):
             return CreateUpdateRecipeSerializer
-        elif self.action in ('list', 'retrieve') and not self.request.user.is_authenticated:
-            return PublicRecipeSerializer
+        elif self.action in ('list', 'retrieve'):
+            if not self.request.user.is_authenticated:
+                return PublicRecipeSerializer
         return RecipeSerializer
 
     def perform_create(self, serializer):
@@ -95,7 +96,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response(
                 {'detail': 'Пользователь не авторизован.'},
                 status=status.HTTP_401_UNAUTHORIZED
-            ) 
+            )
 
         if request.method == 'POST':
             # Добавить в избранное

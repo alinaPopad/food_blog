@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.fields import IntegerField
 from rest_framework.relations import SlugRelatedField
 from django.core.files.base import ContentFile
-from django.db.models import F
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer
 
@@ -117,7 +116,9 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 class IngredientInRecipeViewSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(write_only=True)
     name = serializers.ReadOnlyField(source='ingredient.name')
-    measurement_unit = serializers.ReadOnlyField(source='ingredient.measurement_unit')
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredient.measurement_unit'
+    )
 
     class Meta:
         model = RecipeIngredient
