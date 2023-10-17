@@ -33,7 +33,7 @@ ALLOWED_HOSTS = [
     '84.201.154.246',
     '127.0.0.1'
 ]
-CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net']
+CSRF_TRUSTED_ORIGINS = ['https://taski2023.ddns.net', 'http://127.0.0.1:8000']
 
 # Application definition
 

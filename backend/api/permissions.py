@@ -2,9 +2,34 @@ from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS
 
 from recipes.models import Recipe
-from users.models import CustomUser
 
 
+class IsAuthorOrReadOnly(permissions.BasePermission):
+    """Permission для доступа к рецептам."""
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if isinstance(obj, Recipe) and request.method == 'POST':
+            return True
+        if isinstance(obj, Recipe) and request.method == 'DELETE':
+            return True
+        return obj.author == request.user
+
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """Permission для персонала."""
+    def has_permission(self, request, view):
+        return (request.method in SAFE_METHODS
+                or request.user.is_staff)
+
+
+"""
+from recipes.models import Recipe
 class IsSafeMethod(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.method in permissions.SAFE_METHODS
@@ -23,12 +48,11 @@ class IsRecipeAuthor(IsAuthor):
 
 
 class IsRecipeAuthorOrSafe(IsRecipeAuthor, IsSafeMethod):
-    """Permission объединяющий общую логику."""
+    Permission объединяющий общую логику.
     pass
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
-    """Permission для персонала."""
     def has_permission(self, request, view):
         return (request.method in SAFE_METHODS
                 or request.user.is_staff)
@@ -47,3 +71,4 @@ class IsAuthenticatedForList(IsAuthenticatedCustomUser):
         if view.action in ('list', 'retrieve'):
             return True
         return super().has_permission(request, view)
+"""

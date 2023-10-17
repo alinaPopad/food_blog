@@ -19,8 +19,7 @@ from reportlab.pdfgen import canvas
 from .filters import RecipeFilter, IngredientFilter
 from recipes.models import Recipe, Tags, Ingredient, ShoppingList
 from recipes.models import Favorites, RecipeIngredient
-from .permissions import IsRecipeAuthorOrSafe, IsAdminOrReadOnly
-from .permissions import IsAuthenticatedForList
+from .permissions import IsAuthorOrReadOnly, IsAdminOrReadOnly
 from .pagination import DefaultPagination
 from .serializers import RecipeSerializer, TagSerializer
 from .serializers import IngredientSerializer, PublicRecipeSerializer
@@ -33,8 +32,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     """ViewSet для просмотра и управления рецептами."""
     queryset = Recipe.objects.all()
     permission_classes = (
-        IsRecipeAuthorOrSafe | IsAdminOrReadOnly,
-        IsAuthenticatedForList
+        IsAuthorOrReadOnly | IsAdminOrReadOnly,
     )
     pagination_class = DefaultPagination
     filter_backends = (DjangoFilterBackend,)
@@ -44,7 +42,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Выбор сериализатора в зависимости от метода."""
         if self.action in ('create', 'partial_update'):
             return CreateUpdateRecipeSerializer
-        elif self.action in ('list', 'retrieve'):
+        elif self.action in ('list', 'retrieve') and not self.request.user.is_authenticated:
             return PublicRecipeSerializer
         return RecipeSerializer
 
@@ -54,6 +52,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Создание рецепта."""
         serializer = self.get_serializer(data=request.data)
+        print(request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         recipe_id = serializer.instance.id
@@ -65,11 +64,21 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def put(self, request, pk=None):
         """Изменение рецепта."""
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Пользователь не авторизован.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         recipe = self.get_object_or_404(Recipe, id=pk)
+        if request.user != recipe.author:
+            return Response({'detail': 'Недостаточно прав.'},
+                            status=status.HTTP_403_FORBIDDEN
+                            )
         serializer = CreateUpdateRecipeSerializer(recipe, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, pk=None):
         """Удаление рецепта."""
@@ -82,6 +91,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Метод для управления избранным."""
         recipe = self.get_object()
         user = request.user
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Пользователь не авторизован.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            ) 
 
         if request.method == 'POST':
             # Добавить в избранное
@@ -119,7 +133,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         if request.method == 'POST':
             # Добавление в список покупок
-            if not recipe.shopping_lists.filter(user=user).exists():
+            if not recipe.is_in_shopping_cart.filter(user=user).exists():
                 ShoppingList.objects.create(user=user, recipe=recipe)
                 return Response(
                     {'detail': 'Рецепт добавлен в список покупок.'},
@@ -353,22 +367,13 @@ class CustomUserViewSet(DjoserUserViewSet):
 
         if request.method == 'POST':
             # Создать подписку
-            try:
-                subscription = Follow.objects.get(
-                    user=user,
-                    author=user_to_modify_subscription
-                )
-                return Response(
-                    {'detail': 'Подписка на этого автора уже существует.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            except Follow.DoesNotExist:
-                subscription = Follow(
-                    user=user, author=user_to_modify_subscription)
-                subscription.save()
+            subscription, created = Follow.objects.get_or_create(
+                user=user, author=user_to_modify_subscription
+            )
+            if created:
                 serializer_data = {
-                    'id': user_to_modify_subscription.id,
-                    'is_subscribed': True
+                    'user': user.id,
+                    'author': user_to_modify_subscription.id
                 }
                 return Response(
                     serializer_data,
@@ -383,8 +388,8 @@ class CustomUserViewSet(DjoserUserViewSet):
                 )
                 subscription.delete()
                 serializer_data = {
-                    'id': user_to_modify_subscription.id,
-                    'is_subscribed': False
+                    'user': user.id,
+                    'author': user_to_modify_subscription.id
                 }
                 return Response(
                     serializer_data,

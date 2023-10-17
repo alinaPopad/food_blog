@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.fields import IntegerField
 from rest_framework.relations import SlugRelatedField
 from django.core.files.base import ContentFile
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer
 
@@ -102,10 +103,30 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
         data['amount'] = int(data['amount'])
         return super().to_internal_value(data)
 
+    @staticmethod
+    def validate_amount(value):
+        """Метод валидации количества"""
+
+        if value < 1:
+            raise serializers.ValidationError(
+                'Количество ингредиента должно быть больше 0!'
+            )
+        return value
+
+
+class IngredientInRecipeViewSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(write_only=True)
+    name = serializers.ReadOnlyField(source='ingredient.name')
+    measurement_unit = serializers.ReadOnlyField(source='ingredient.measurement_unit')
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('id', 'name', 'amount', 'measurement_unit')
+
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериалищатор для просмотра рецептов."""
-    ingredients = IngredientSerializer(many=True, read_only=True)
+    ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
     author = CustomUserCreateSerializer(read_only=True)
@@ -127,7 +148,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_ingredients(self, obj):
-        return IngredientSerializer(obj.ingredients.all(), many=True).data
+        ingredients_data = RecipeIngredient.objects.filter(recipe=obj)
+        ingredient_serializer = IngredientInRecipeViewSerializer(
+            instance=ingredients_data,
+            many=True
+        )
+        return ingredient_serializer.data
 
     def get_is_favorited(self, obj):
         user = self.context['request'].user
@@ -227,6 +253,7 @@ class PublicRecipeSerializer(serializers.ModelSerializer):
     """Просмотр рецепта для неавторизованного пользователя."""
     tags = TagSerializer(many=True, read_only=True)
     author = CustomUserCreateSerializer(read_only=True)
+    ingredients = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -235,10 +262,19 @@ class PublicRecipeSerializer(serializers.ModelSerializer):
             'tags',
             'author',
             'name',
+            'ingredients',
             'image',
             'text',
             'cooking_time',
         )
+
+    def get_ingredients(self, obj):
+        ingredients_data = RecipeIngredient.objects.filter(recipe=obj)
+        ingredient_serializer = IngredientInRecipeViewSerializer(
+            instance=ingredients_data,
+            many=True
+        )
+        return ingredient_serializer.data
 
 
 class MiniRecipeSerializer(serializers.ModelSerializer):
@@ -257,12 +293,15 @@ class MiniRecipeSerializer(serializers.ModelSerializer):
 
 class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор для подписки на авторов."""
-    is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField(
+        method_name='get_is_subscribed'
+    )
     recipes = serializers.SerializerMethodField(
         read_only=True,
         method_name='get_recipes')
     recipes_count = serializers.SerializerMethodField(
-        read_only=True
+        read_only=True,
+        method_name='get_recipes_count'
     )
 
     class Meta:
@@ -274,13 +313,11 @@ class FollowSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return Follow.objects.filter(user=user, author=obj.id).exists()
+        return Follow.objects.filter(user=user, author=obj).exists()
 
     def get_recipes(self, obj):
-        user = obj.user
         request = self.context.get('request')
-        authors = Follow.objects.filter(user=user)
-        recipes = Recipe.objects.filter(author__in=authors)
+        recipes = obj.recipes.all()
         recipes_limit = request.query_params.get('recipes_limit')
         if recipes_limit:
             recipes = recipes[:int(recipes_limit)]
