@@ -41,21 +41,12 @@ class RecipeFilter(filters.FilterSet):
 
     def filter_queryset(self, queryset):
         if self.request.query_params.get('is_in_shopping_cart'):
-            if self.request.query_params.get('page') == '1':
-                return queryset
+            self.request._request.GET = self.request._request.GET.copy()
+            self.request._request.GET['page'] = '1'
+            return queryset
         return super().filter_queryset(queryset)
 
 
 class IngredientFilter(SearchFilter):
     """Фильтр для поиска ингредиента."""
     search_param = 'name'
-
-
-"""
-def filter_queryset(self, queryset):
-        if self.request.query_params.get('is_in_shopping_cart'):
-            self.request._request.GET = self.request._request.GET.copy()
-            self.request._request.GET['page'] = '1'
-            return queryset
-        return super().filter_queryset(queryset)
-"""
