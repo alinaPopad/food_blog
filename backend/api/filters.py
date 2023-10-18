@@ -50,6 +50,7 @@ class IngredientFilter(SearchFilter):
     """Фильтр для поиска ингредиента."""
     search_param = 'name'
 
+
 """
 def filter_queryset(self, queryset):
         if self.request.query_params.get('is_in_shopping_cart'):
