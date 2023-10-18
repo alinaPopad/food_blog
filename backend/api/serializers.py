@@ -152,7 +152,7 @@ class IngredientInRecipeViewSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    """Сериалищатор для просмотра рецептов."""
+    """Сериализатор для просмотра рецептов."""
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
