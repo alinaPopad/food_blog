@@ -2,7 +2,47 @@
 ## Foodgram
 сайт, на котором пользователи будут публиковать рецепты, добавлять чужие рецепты в избранное и подписываться на публикации других авторов. Пользователям сайта также будет доступен сервис «Список покупок». Он позволит создавать список продуктов, которые нужно купить для приготовления выбранных блюд.
 
-## Для локального запуска проекта виртуальное окружение, установите в него зависимости из backend/requirements.txt и запустите контнейнеры docker compousu up.
+## Для локального запуска проекта виртуальное окружение, установите в него зависимости из backend/requirements.txt и запустите контнейнеры командой -  docker compousu up.
+В корневой директории создать файл .env и заполнить своими данными по аналогии:
+POSTGRES_USER=user_name
+POSTGRES_PASSWORD=password
+POSTGRES_DB=django_db_name
+DB_HOST=dbf
+DB_PORT=5432
+SECRET_KEY='секретный ключ Django'
+DEBUG=False
+
+
+## Для запуска на удаленном сервере.
+Развернуть проект на удаленном сервере:
+Клонировать репозиторий:
+https://github.com/alinaPopad/foodgram-project-react.git
+Установить на сервере Docker, Docker Compose:
+sudo apt install curl                                   # установка утилиты для скачивания файлов
+curl -fsSL https://get.docker.com -o get-docker.sh      # скачать скрипт для установки
+sh get-docker.sh                                        # запуск скрипта
+sudo apt-get install docker-compose-plugin              # последняя версия docker compose
+Скопировать на сервер файл- docker-compose.production.yml
+Для работы с GitHub Actions необходимо в репозитории в разделе Secrets > Actions создать переменные окружения:
+SECRET_KEY              # секретный ключ Django проекта
+DOCKER_PASSWORD         # пароль от Docker Hub
+DOCKER_USERNAME         # логин Docker Hub
+HOST                    # публичный IP сервера
+USER                    # имя пользователя на сервере
+PASSPHRASE              # *если ssh-ключ защищен паролем
+SSH_KEY                 # приватный ssh-ключ
+
+Создать и запустить контейнеры Docker, выполнить команду на сервере (версии команд "docker compose" или "docker-compose" отличаются в зависимости от установленной версии Docker Compose):
+sudo docker compose up -d
+После успешной сборки выполнить миграции:
+sudo docker compose exec backend python manage.py migrate
+Создать суперпользователя:
+sudo docker compose exec backend python manage.py createsuperuser
+Собрать статику:
+sudo docker compose exec backend python manage.py collectstatic
+Наполнить базу данных содержимым из файла ingredients.json:
+sudo docker compose exec backend python manage.py load_ingredients.py
+
 
 ## Используемые библиотеки:
 asgiref==3.7.2

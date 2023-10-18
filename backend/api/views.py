@@ -26,6 +26,7 @@ from .serializers import IngredientSerializer, PublicRecipeSerializer
 from .serializers import CreateUpdateRecipeSerializer
 from users.models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
+from .serializers import FollowViewSerializer
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -87,16 +88,16 @@ class RecipesViewSet(viewsets.ModelViewSet):
         recipe.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        url_path='favorite',
+        permission_classes=[IsAuthenticated]
+    )
     def favorites(self, request, pk=None):
         """Метод для управления избранным."""
         recipe = self.get_object()
         user = request.user
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Пользователь не авторизован.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
 
         if request.method == 'POST':
             # Добавить в избранное
@@ -126,7 +127,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-    @action(detail=True, methods=['post', 'delete'])
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated]
+    )
     def shopping_cart(self, request, pk=None):
         """Метод для управления списком покупок."""
         recipe = self.get_object()
@@ -361,59 +366,47 @@ class CustomUserViewSet(DjoserUserViewSet):
             return Response({'detail': 'Токен не существует.'})
 
     @action(detail=True, methods=['POST', 'DELETE'], url_path='subscribe')
-    def manage_subscription(self, request, id=None):
-        """Управление подпиской."""
-        user_to_modify_subscription = get_object_or_404(CustomUser, pk=id)
-        user = request.user
-
+    def manage_subscription(self, request, id):
         if request.method == 'POST':
-            # Создать подписку
-            subscription, created = Follow.objects.get_or_create(
-                user=user, author=user_to_modify_subscription
-            )
-            if created:
-                serializer_data = {
-                    'user': user.id,
-                    'author': user_to_modify_subscription.id
-                }
-                return Response(
-                    serializer_data,
-                    status=status.HTTP_201_CREATED
-                )
-        elif request.method == 'DELETE':
-            # Удалить подписку
-            try:
-                subscription = Follow.objects.get(
-                    user=user,
-                    author=user_to_modify_subscription
-                )
-                subscription.delete()
-                serializer_data = {
-                    'user': user.id,
-                    'author': user_to_modify_subscription.id
-                }
-                return Response(
-                    serializer_data,
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            except Follow.DoesNotExist:
-                return Response(
-                    {'detail': 'Подписка не найдена.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            return self.sub_create(request, id)
+        if request.method == 'DELETE':
+            return self.sub_del(request, id)
+
+    def sub_create(self, request, id):
+        data = {
+            'user': request.user.id,
+            'author': id
+        }
+        serializer = FollowViewSerializer(
+            data=data,
+            context={'request': request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def sub_del(self, request, id):
+        author = get_object_or_404(CustomUser, id=id)
+        if Follow.objects.filter(
+            user=request.user,
+            author=author
+        ).exists():
+            Follow.objects.filter(
+                user=request.user,
+                author=author
+            ).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['GET'], url_path='subscriptions')
     def list_subscriptions(self, request):
-        queryset = CustomUser.objects.filter(follower__user=self.request.user)
-        if queryset:
-            pages = self.paginate_queryset(queryset)
-            serializer = FollowSerializer(
-                pages,
-                many=True,
-                context={'request': request}
-            )
-            return self.get_paginated_response(serializer.data)
-        return Response(
-            'Вы ни на кого не подписаны.',
-            status=status.HTTP_400_BAD_REQUEST
+        user = request.user
+        print(user)
+        queryset = CustomUser.objects.filter(following__user=user)
+        print(queryset)
+        page = self.paginate_queryset(queryset)
+        serializer = FollowSerializer(
+            page, many=True, context={'request': request}
         )
+        return self.get_paginated_response(serializer.data)

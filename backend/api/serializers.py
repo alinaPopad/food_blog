@@ -328,3 +328,15 @@ class FollowSerializer(serializers.ModelSerializer):
     def get_recipes_count(obj):
         """Метод для получения количества рецептов"""
         return obj.recipes.count()
+
+
+class FollowViewSerializer(serializers.ModelSerializer):
+    """Для создания подписки."""
+    class Meta:
+        model = Follow
+        fields = ('user', 'author')
+
+    def to_representation(self, instance):
+        return FollowSerializer(instance.author, context={
+            'request': self.context.get('request')
+        }).data
