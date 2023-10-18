@@ -43,7 +43,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 
 
 class CustomUserCViewSerializer(UserCreateSerializer):
-    """Сериализатор для CustomUser."""
+    """Сериализатор для просмотра CustomUser."""
     is_subscribed = serializers.SerializerMethodField(
         method_name='get_is_subscribed'
     )
