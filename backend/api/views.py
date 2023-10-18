@@ -26,7 +26,7 @@ from .serializers import IngredientSerializer, PublicRecipeSerializer
 from .serializers import CreateUpdateRecipeSerializer
 from users.models import CustomUser, Follow
 from .serializers import FollowSerializer, CustomUserCreateSerializer
-from .serializers import FollowViewSerializer
+from .serializers import FollowViewSerializer, CustomUserCViewSerializer
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -267,6 +267,12 @@ class CustomUserViewSet(DjoserUserViewSet):
     serializer_class = CustomUserCreateSerializer
     pagination_class = DefaultPagination
     permission_classes = (IsAuthenticated, )
+
+    def get_serializer_class(self):
+        """Выбор сериализатора в зависимости от метода."""
+        if self.action in ('list', 'retrieve'):
+            return CustomUserCViewSerializer
+        return CustomUserCreateSerializer
 
     def custom_user_list(self, request):
         """Регистрация нового пользователя."""

@@ -42,6 +42,32 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         return representation
 
 
+class CustomUserCViewSerializer(UserCreateSerializer):
+    """Сериализатор для CustomUser."""
+    is_subscribed = serializers.SerializerMethodField(
+        method_name='get_is_subscribed'
+    )
+
+    class Meta(UserCreateSerializer.Meta):
+        model = CustomUser
+        fields = (
+            'id', 'email',
+            'username', 'first_name',
+            'last_name', 'password', 'is_subscribed'
+        )
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return Follow.objects.filter(user=user, author=obj).exists()
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['is_subscribed'] = self.get_is_subscribed(instance)
+        return representation
+
+
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
     class Meta:
@@ -130,7 +156,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
-    author = CustomUserCreateSerializer(read_only=True)
+    author = CustomUserCViewSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
