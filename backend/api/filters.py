@@ -49,4 +49,4 @@ class RecipeFilter(filters.FilterSet):
 
 class IngredientFilter(SearchFilter):
     """Фильтр для поиска ингредиента."""
-    search_param = 'name'  #
+    search_param = 'name'
