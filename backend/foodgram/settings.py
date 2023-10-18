@@ -24,8 +24,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ.get('SECRET_KEY', default='*')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.environ.get('DEBUG', default=False) == 'True'
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', default=False) == 'True'
+
 
 ALLOWED_HOSTS = [
     'taski2023.ddns.net',
