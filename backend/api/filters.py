@@ -10,12 +10,8 @@ User = get_user_model()
 
 class RecipeFilter(filters.FilterSet):
     """Фильтр для рецептов.(теги/избранное/список покупок)"""
-    is_favorited = filters.ChoiceFilter(
-        method='is_favorited',
-        field_name='your_field_name',
-        lookup_expr='exact',
-        choices=[(0, '0'), (1, '1')]
-    )
+    is_favorited = filters.BooleanFilter(
+        method='filter_is_favorited')
     is_in_shopping_cart = filters.ChoiceFilter(
         method='filter_by_shopping_cart',
         field_name='is_in_shopping_cart',
