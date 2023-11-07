@@ -87,8 +87,3 @@ sh get-docker.sh                                        # запуск скри�
 
 - Попадченко Алина 
 
-Для ревью:
-- https://taski2023.ddns.net/
-- 84.201.154.246
-- admin: alina@alina.com
-- password: alina
